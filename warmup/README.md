@@ -15,7 +15,7 @@ Then you will write a simple project in Rust and run it. If you are already fami
 
 **Notice that this is an individual assignment. You should finish it on your own.**
 
-## Reading 
+## Reading
 Please read [Rust by example](https://doc.rust-lang.org/rust-by-example/) to learn Rust grammar. We suggest you to read the entire document to get an overview of Rust. For this assignment, Chapters 1-4 and 16.1 in this document are highly recommended.
 
 Please read [https://doc.rust-lang.org/cargo/](https://doc.rust-lang.org/cargo/) to learn Cargo, the Rust package manager and building tool. After reading chapter 1, you'll be able to install Rust and Cargo, and run a Rust project.
@@ -28,7 +28,7 @@ You can learn about other public crates here: [https://docs.rs/](https://docs.rs
 
 For these crates, their github page or homepage may also be helpful. Feel free to read them.
 
-## Programming 
+## Programming
 You will create a Rust project using Cargo. We do not provide template code for this assignment and you need to create a prjoect by yourself. Also you don't need to clone this repo for this assignment. You need to add the following crates to your project dependencies:
 - ring
 - bincode
@@ -42,7 +42,7 @@ You need to write the main function of the project that does the following:
 2. convert it to bytes.
 3. use SHA256 hash function in *ring* crate to compute the hash value of your name.
 4. use *hex* crate to encode hash value to hex format.
-5. define a struct named **NameHash** and create an instance of this struct that contains both your name and the hex foramt hash.
+5. define a struct named **NameHash** and create an instance of this struct that contains both your name and the hex format hash.
 6. derive Debug trait on **NameHash**.
 7. derive Serialize and Deserialize trait on **NameHash** (see *serde* crate on *docs.rs*, also see [this](https://serde.rs/derive.html)).
 8. serialize the **NameHash** instance into bytes using *bincode* crate.
@@ -60,7 +60,7 @@ NameHash { name: "John Smith", hash: "ef61a579c907bbed674c0dbcbcf7f7af8f851538ee
 </a>
 
 ### Advance Notice
-This assignment has some basic Rust programming tasks. Each task is closely related to future projects in the course. 
+This assignment has some basic Rust programming tasks. Each task is closely related to future projects in the course.
 
 - The goal of step 3 is to let you use SHA256 function, and you're going to use it throughout the course assignments.
 - The goal of step 5 is to let you know how to define a struct. When you implement a Bitcoin client, almost everything is a struct, e.g. Block, Transaction, Unspent Transaction Output (UTXO), etc.

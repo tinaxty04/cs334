@@ -17,7 +17,7 @@ In this assignment, you will implement some crypto-primitives and basic data str
 
 ## Code provided
 We have provided incomplete code for implementing some crypto-primitives and data structures like merkle tree, signature and transactions. The following files are related to this assignment and you should read them.
-1. _src/crypto/hash.rs_ - Provides __H256__ struct(32 byte array),  __Hashable__ trait, with its implementation for H256. 
+1. _src/crypto/hash.rs_ - Provides __H256__ struct(32 byte array),  __Hashable__ trait, with its implementation for H256.
 2. _src/crypto/keypair.rs_ - function to randomly generate keypair.
 
 You don't need to write anything in the above two files.
@@ -59,7 +59,7 @@ To test your code, you are free to write more tests.
 
 ### Merkle Tree
 This part is in file *src/crypto/merkle.rs*. You need to complete the merkle tree struct and some functions. We covered merkle tree briefly in the lecture. You can also find a good article about it [here](https://nakamoto.com/merkle-trees/). Specifically, the functions you need to implement are:
-1. *new()* - this function takes a slice of Hashable data as input, and create the merkle tree. 
+1. *new()* - this function takes a slice of Hashable data as input, and create the merkle tree.
 2. *root()* - given a merkle tree, return the root. The computation of the root is inside *new()*, this function should just return the root.
 3. *proof()* - given a merkle tree, and also given the index, this function returns the proof in the form of a vector of hashes.
 4. *verify()* - given a root, a hash of datum, a proof (a vector of hashes), an index of that datum (same index in *proof()* function), and a leaf_size (the length of leaves/data in *new()* function), returns whether the proof is correct.
@@ -75,21 +75,21 @@ A tricky part about *new()* is when the input length is not a power of 2, you wi
 
 ## Implementation Hints
 **It is highly recommended that you use an IDE when programming on this project.** Typing and ownership management in Rust can be tricky, and an IDE is helpful in detecting problems and providing suggestions while you code, especially as the code size grows.
- 
+
 Implementation hints on `transaction.rs`:
 - For this assignment, you can define the struct `RawTransaction` arbitrarily as long as it's non-empty. The content in that struct does not matter.
 - The `sign` and `verify` functions you are going to implement should just be a couple of lines of code built upon the functions provided in the `ring` crate. [Here]( https://docs.rs/ring/latest/ring/signature/index.html#signing-and-verifying-with-ed25519) is an example showing the usage of these functions. Pay attention to the `sign` and `verify` functions in that example. Below are more detailed instructions:
   - For `sign`: Firstly, serialize the RawTransaction `t` using the `bincode` crate. Pass a _reference_ of the resulting byte vector to `key`'s [`sign` method](https://docs.rs/ring/latest/ring/signature/struct.Ed25519KeyPair.html#method.sign) to obtain the signature.
   - For `verify`: As in `sign`, the RawTransaction `t` need to be firstly serialized. Refer to the last few lines in the example above to create an `UnparsedPublicKey` object and apply [the `verify` method](https://docs.rs/ring/latest/ring/signature/struct.UnparsedPublicKey.html#method.verify) on it. This should return a [`Result`](https://doc.rust-lang.org/nightly/core/result/enum.Result.html). Apply the `is_ok()` method to turn it into a `bool`.
 - The simpliest way of generating random numbers in Rust is to use the generic function `random` in the `rand` crate. For example, calling `rand::random::<u32>()` will produce a random 32-bit unsigned integer.
- 
+
 Implementation hints on `crypto/merkle.rs`:
 - There is more than one way to implement a Merkle tree. For example:
   1. The most intuitive way is to implement it as a recursive binary tree. In Rust, both the left subtree and the right subtree of a tree (of type `T`) should have a wrapped type like `Option<Box<T>>`. Here, `Box` is required because the subtrees are dynamically sized, and `Option` is needed because the subtrees can be empty. (**We have provided some starter code for this method: see `merkle.rs`**. If you are new to Rust, it is highly recommended to read the starter code and then build upon it.)
   2. Binary trees can also be implemented using non-recursive data structures, for example using an array (refer to https://en.wikipedia.org/wiki/Binary_tree#Arrays). In Rust, `Vec<T>` is an array of changeable size containing elements of type `T`.
 - To concatenate two slices `a` and `b`, use `[a, b].concat()`. Several types in Rust can be automatically converted to slice, _not_ including H256. You can use `.ref()` to explicitly convert `H256` into a byte slice. The concatenated result no longer fits in an `H256`, so we need a more general way for hashing. See the hint below.
 - Recall that we can use the function `ring::digest::digest` with the SHA256 algorithm to calculate the hash of an arbitrary byte slice. To convert the resulting hash (of type `Digest`) into the type `H256`, the simplest way is to call ...`.into()`.
-- (Related to the starter code) Assuming a reference to non-leaf `node` has type `&MerkleTreeNode`, the simplest way to get a reference to its (e.g., left) child is via `node.left.as_ref().unwrap()`. If it's unknown whether a `node` has a left/right child or not, it is recommended to use the [`match`](https://doc.rust-lang.org/rust-by-example/flow_control/match.html) syntax: e.g., `match &node.left { ... }`
+- (Related to the starter code) Assuming a reference to non-leaf `node` has type `&MerkleTreeNode`, the simplest way to get a reference to its (e.g., left) child is via `node.left.as_ref().unwrap()`. If it's unknown whether a `node` has a left/right child or not, it is recommended to use [`if-let`](https://doc.rust-lang.org/rust-by-example/flow_control/if_let.html) or [`match`](https://doc.rust-lang.org/rust-by-example/flow_control/match.html) syntax (e.g., `if let Some(contents) = &node.left { ... }` or `match &node.left { ... }`)
 - In the `proof` and `verify` methods, you probably need [loops](https://doc.rust-lang.org/reference/expressions/loop-expr.html) for traversing down the Merkle tree. The Merkle proof/verification algorithm can be implemented with very basic Rust syntax (except for the problems as elaborated above).
 
 ## Advance Notice
