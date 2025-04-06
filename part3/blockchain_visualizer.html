@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Blockchain Visualizer</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 20px;
+			background-color: #f5f5f5;
+		}
+
+		#blockchain-container {
+			width: 100%;
+			height: 600px;
+			background-color: white;
+			border: 1px solid #ddd;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.block {
+			position: absolute;
+			width: 60px;
+			height: 60px;
+			background-color: #4CAF50;
+			color: white;
+			text-align: center;
+			line-height: 60px;
+			border-radius: 5px;
+			cursor: pointer;
+			user-select: none;
+			transition: all 0.3s ease;
+		}
+
+		.block.genesis {
+			background-color: #2196F3;
+		}
+
+		.block.longest-chain {
+			background-color: #836EAA;
+		}
+
+		#block-info {
+			margin-top: 20px;
+			padding: 10px;
+			border: 1px solid #ddd;
+			background-color: white;
+			display: none;
+		}
+
+		.arrow {
+			position: absolute;
+			background-color: #555;
+			height: 2px;
+			z-index: 1;
+			transition: all 0.3s ease;
+		}
+
+		.arrow:after {
+			content: '';
+			position: absolute;
+			right: 0;
+			top: -4px;
+			width: 0;
+			height: 0;
+			border-top: 5px solid transparent;
+			border-bottom: 5px solid transparent;
+			border-left: 8px solid #555;
+		}
+
+		.controls {
+			margin-bottom: 10px;
+			display: flex;
+			align-items: center;
+		}
+
+		.chain-info {
+			margin-left: 20px;
+			font-weight: bold;
+		}
+
+		button {
+			background-color: #4e2a84;
+			color: white;
+			border: none;
+			padding: 8px 16px;
+			border-radius: 4px;
+			cursor: pointer;
+			margin-right: 8px;
+			font-family: 'Campton', Arial, sans-serif;
+			transition: background-color 0.2s;
+		}
+
+		button:hover {
+			background-color: #401f68;
+		}
+
+		#status {
+			margin-bottom: 16px;
+			font-weight: bold;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Blockchain Visualizer</h1>
+	<div id="status">Connected to blockchain</div>
+	<div class="controls">
+		<button id="showMoreBtn"><- Time</button>
+				<button id="showLessBtn">Time -></button>
+				<div class="chain-info">
+					Showing blocks from height <span id="startHeight">0</span> to <span id="endHeight">0</span> (Tip
+					height: <span id="tipHeight">0</span>)
+				</div>
+	</div>
+	<div id="blockchain-container"></div>
+	<div id="block-info"></div>
+
+	<script>
+        // Configuration
+        const BLOCK_SIZE = 60;
+        const HORIZONTAL_SPACING = 120;
+        const VERTICAL_SPACING = 80;
+        const POLLING_INTERVAL = 2000; // Poll every 2 seconds
+
+        // State
+        let blocks = {};
+        let heightToBlocks = {};
+        let selectedBlock = null;
+        let longestChainBlocks = []; // Keep track of blocks in the longest chain
+        let currentTip = null; // Current tip hash
+        let tipHeight = 0; // Height of the tip
+        let startHeight = 0; // Start height to display
+        let visibleBlocks = []; // Currently visible blocks
+
+        // Calculated based on container width
+        let blocksPerScreen = 0;
+
+        // DOM Elements
+        const container = document.getElementById('blockchain-container');
+        const statusElement = document.getElementById('status');
+        const blockInfoElement = document.getElementById('block-info');
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        const showLessBtn = document.getElementById('showLessBtn');
+        const startHeightElement = document.getElementById('startHeight');
+        const endHeightElement = document.getElementById('endHeight');
+        const tipHeightElement = document.getElementById('tipHeight');
+
+        // Calculate how many blocks can fit on screen
+        function calculateBlocksPerScreen() {
+            const containerWidth = container.clientWidth;
+            return Math.floor((containerWidth - 40) / HORIZONTAL_SPACING);
+        }
+
+        // Initialize event listeners
+        showMoreBtn.addEventListener('click', () => {
+            if (startHeight > 0) {
+                startHeight = Math.max(0, startHeight - 1);
+                fetchVisibleBlocks();
+            }
+        });
+
+        showLessBtn.addEventListener('click', () => {
+            if (startHeight < tipHeight - blocksPerScreen + 1) {
+                startHeight++;
+                fetchVisibleBlocks();
+            }
+        });
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            blocksPerScreen = calculateBlocksPerScreen();
+            // Adjust startHeight to ensure the tip is always visible
+            if (tipHeight - startHeight >= blocksPerScreen) {
+                startHeight = Math.max(0, tipHeight - blocksPerScreen + 1);
+            }
+            fetchVisibleBlocks();
+        });
+
+        // Fetch only the visible blocks
+        function fetchVisibleBlocks() {
+            statusElement.textContent = 'Fetching blockchain data...';
+            statusElement.style.color = 'blue';
+
+            // Calculate end height
+            const endHeight = Math.min(tipHeight, startHeight + blocksPerScreen - 1);
+
+            // Update UI
+            startHeightElement.textContent = startHeight;
+            endHeightElement.textContent = endHeight;
+            tipHeightElement.textContent = tipHeight;
+
+            fetch(`/api/blocks?start=${startHeight}&end=${endHeight}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    statusElement.textContent = 'Connected to blockchain';
+                    statusElement.style.color = 'green';
+
+                    if (data && Array.isArray(data)) {
+                        updateVisualization(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching blocks:', error);
+                    statusElement.textContent = 'Error connecting to blockchain. Retrying...';
+                    statusElement.style.color = 'red';
+                });
+        }
+
+        // Get the current tip height
+        function pollForTipHeight() {
+            fetch('/api/tip')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.height !== undefined) {
+                        const newTipHeight = parseInt(data.height);
+
+                        // If tip has increased, adjust view to show new blocks
+                        if (newTipHeight > tipHeight) {
+                            // Auto-adjust startHeight to keep showing the latest blocks
+                            if (newTipHeight - startHeight >= blocksPerScreen) {
+                                startHeight = newTipHeight - blocksPerScreen + 1;
+                            }
+                            tipHeight = newTipHeight;
+                            fetchVisibleBlocks();
+                        } else if (newTipHeight !== tipHeight) {
+                            // Just update the tip height if it changed (could be a reorg)
+                            tipHeight = newTipHeight;
+                            fetchVisibleBlocks();
+                        }
+
+                        tipHeightElement.textContent = tipHeight;
+                    }
+
+                    // Schedule next poll
+                    setTimeout(pollForTipHeight, POLLING_INTERVAL);
+                })
+                .catch(error => {
+                    console.error('Error fetching tip:', error);
+                    // Retry sooner on error
+                    setTimeout(pollForTipHeight, 1000);
+                });
+        }
+
+        // Helper function to check if a position is occupied
+        function isPositionOccupied(height, verticalPosition) {
+            if (!heightToBlocks[height]) return false;
+
+            return heightToBlocks[height].some(hash => {
+                const block = blocks[hash];
+                return block && block.verticalPosition === verticalPosition;
+            });
+        }
+
+        // Clear the visualization
+        function clearVisualization() {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            blocks = {};
+            heightToBlocks = {};
+            longestChainBlocks = [];
+            visibleBlocks = [];
+        }
+
+        // Update the visualization with new data
+        function updateVisualization(blocksData) {
+            // Remember selected block if any
+            const selectedBlockHash = selectedBlock;
+
+            // Clear existing visualization
+            clearVisualization();
+
+            // Find the longest chain
+            findLongestChain(blocksData);
+
+            // Add blocks to visualization
+            blocksData.forEach(block => addBlock(block));
+
+            // Update arrows after all blocks are added
+            blocksData.forEach(block => {
+                if (block.parent && block.parent !== "null" && blocks[block.parent]) {
+                    createArrow(block.parent, block.hash);
+                }
+            });
+
+            // Restore selected block if it's still visible
+            if (selectedBlockHash && blocks[selectedBlockHash]) {
+                showBlockDetails(selectedBlockHash);
+            } else if (selectedBlockHash) {
+                // If previously selected block is no longer visible
+                blockInfoElement.style.display = 'none';
+                selectedBlock = null;
+            }
+
+            // Remember visible blocks
+            visibleBlocks = blocksData.map(block => block.hash);
+        }
+
+        // Find the longest chain by traversing backwards from tip
+        function findLongestChain(allBlocks) {
+            longestChainBlocks = [];
+
+            // Find the highest height block
+            let maxHeight = 0;
+            let tipHash = null;
+
+            allBlocks.forEach(block => {
+                const height = typeof block.height === 'number' ? block.height : parseInt(block.height, 10) || 0;
+                if (height > maxHeight) {
+                    maxHeight = height;
+                    tipHash = block.hash;
+                    currentTip = block.hash;
+                }
+            });
+
+            // Create a map for faster lookup
+            const blockMap = {};
+            allBlocks.forEach(block => {
+                blockMap[block.hash] = block;
+            });
+
+            // Traverse backwards from tip
+            let currentHash = tipHash;
+            while (currentHash && currentHash !== "null") {
+                longestChainBlocks.unshift(currentHash);
+                const block = blockMap[currentHash];
+                if (!block) break;
+                currentHash = block.parent;
+            }
+        }
+
+        // Add a block to the visualization
+        function addBlock(block) {
+            const blockHash = block.hash;
+
+            // Parse height - ensure it's a number
+            const height = typeof block.height === 'number' ? block.height : parseInt(block.height, 10) || 0;
+
+            // Create height bucket if it doesn't exist
+            if (!heightToBlocks[height]) {
+                heightToBlocks[height] = [];
+            }
+
+            // Determine if block is in longest chain
+            const isLongestChain = longestChainBlocks.includes(blockHash);
+
+            // Calculate position
+            let verticalPosition;
+
+            if (isLongestChain) {
+                // Place longest chain blocks in the middle
+                verticalPosition = 3; // Center row
+            } else {
+                // Place forks diagonally
+                const parentHash = block.parent;
+                const parentIsLongestChain = parentHash && longestChainBlocks.includes(parentHash);
+
+                if (parentIsLongestChain) {
+                    // First level fork - place above or below center
+                    // Find first available position above or below center
+                    for (let offset = 1; offset <= 3; offset++) {
+                        // Try position above center
+                        if (!isPositionOccupied(height, 3 - offset)) {
+                            verticalPosition = 3 - offset;
+                            break;
+                        }
+                        // Try position below center
+                        if (!isPositionOccupied(height, 3 + offset)) {
+                            verticalPosition = 3 + offset;
+                            break;
+                        }
+                    }
+                    // If all positions are occupied, use a new row
+                    if (verticalPosition === undefined) {
+                        // Count blocks to determine new row
+                        const occupiedPositions = [];
+                        heightToBlocks[height]?.forEach(h => {
+                            if (blocks[h]) occupiedPositions.push(blocks[h].verticalPosition);
+                        });
+
+                        for (let pos = 0; pos <= 6; pos++) {
+                            if (!occupiedPositions.includes(pos)) {
+                                verticalPosition = pos;
+                                break;
+                            }
+                        }
+
+                        // Last resort
+                        if (verticalPosition === undefined) {
+                            verticalPosition = 0;
+                        }
+                    }
+                } else {
+                    // Second level fork or deeper - find parent's position and extend
+                    const parent = blocks[parentHash];
+                    if (parent) {
+                        // Continue in same direction as parent fork
+                        const parentY = parent.verticalPosition;
+
+                        // Try to keep same vertical position as parent if possible
+                        if (!isPositionOccupied(height, parentY)) {
+                            verticalPosition = parentY;
+                        } else {
+                            // Otherwise try positions nearby
+                            for (let offset = 1; offset <= 3; offset++) {
+                                // Try position above
+                                if (parentY - offset >= 0 && !isPositionOccupied(height, parentY - offset)) {
+                                    verticalPosition = parentY - offset;
+                                    break;
+                                }
+                                // Try position below
+                                if (parentY + offset <= 6 && !isPositionOccupied(height, parentY + offset)) {
+                                    verticalPosition = parentY + offset;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If still no position, find any available position
+                        if (verticalPosition === undefined) {
+                            for (let pos = 0; pos <= 6; pos++) {
+                                if (!isPositionOccupied(height, pos)) {
+                                    verticalPosition = pos;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Last resort if we still don't have a position
+                    if (verticalPosition === undefined) {
+                        // Find first available position
+                        for (let pos = 0; pos <= 6; pos++) {
+                            if (!isPositionOccupied(height, pos)) {
+                                verticalPosition = pos;
+                                break;
+                            }
+                        }
+                        // Absolute last resort
+                        if (verticalPosition === undefined) {
+                            verticalPosition = 6;
+                        }
+                    }
+                }
+            }
+
+            // Ensure verticalPosition has a valid value
+            verticalPosition = Math.max(0, Math.min(6, verticalPosition || 0));
+
+            // Add to height bucket
+            heightToBlocks[height].push(blockHash);
+
+            // Create block element
+            const blockElement = document.createElement('div');
+            blockElement.className = 'block';
+            if (height === 0) {
+                blockElement.classList.add('genesis');
+            }
+            if (isLongestChain) {
+                blockElement.classList.add('longest-chain');
+            }
+
+            // Extract the last 4 characters of the hash
+            const hashLength = blockHash.length;
+            const hashSuffix = blockHash.replace(/[^a-zA-Z0-9]/g, '').substring(hashLength - 6);
+            blockElement.textContent = hashSuffix;
+
+            // Position the block - adjust x position based on the start height
+            const relativeHeight = height - startHeight;
+            const xPos = relativeHeight * HORIZONTAL_SPACING + 20;
+            const yPos = verticalPosition * VERTICAL_SPACING + 20;
+
+            blockElement.style.left = xPos + 'px';
+            blockElement.style.top = yPos + 'px';
+            blockElement.setAttribute('data-hash', blockHash);
+
+            // Store block data
+            blocks[blockHash] = {
+                element: blockElement,
+                data: block,
+                x: xPos,
+                y: yPos,
+                height: height,
+                verticalPosition: verticalPosition,
+                arrows: [],
+                isLongestChain: isLongestChain
+            };
+
+            // Add click handler for block details
+            blockElement.addEventListener('click', () => showBlockDetails(blockHash));
+
+            // Add to DOM
+            container.appendChild(blockElement);
+        }
+
+        // Create an arrow connecting parent and child blocks
+        function createArrow(parentHash, childHash) {
+            const parent = blocks[parentHash];
+            const child = blocks[childHash];
+
+            if (!parent || !child) return;
+
+            const arrow = document.createElement('div');
+            arrow.className = 'arrow';
+
+            // Calculate start and end positions
+            const startX = child.x; // Left edge of child
+            const startY = child.y + BLOCK_SIZE / 2;
+            const endX = parent.x + BLOCK_SIZE; // Right edge of parent
+            const endY = parent.y + BLOCK_SIZE / 2;
+
+            // Calculate length and angle
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            // Set arrow position and rotation
+            arrow.style.width = length + 'px';
+            arrow.style.left = startX + 'px';
+            arrow.style.top = startY + 'px';
+            arrow.style.transformOrigin = '0 50%';
+            arrow.style.transform = `rotate(${angle}deg)`;
+
+            // Use different color for longest chain
+            if (parent.isLongestChain && child.isLongestChain) {
+                arrow.style.backgroundColor = '#FF9800';
+                arrow.style.height = '3px';
+                arrow.style.zIndex = '2';
+            }
+
+            container.appendChild(arrow);
+            child.arrows.push(arrow);
+        }
+
+        // Display block details when clicked
+        function showBlockDetails(hash) {
+            const block = blocks[hash].data;
+
+            if (selectedBlock) {
+                blocks[selectedBlock].element.style.boxShadow = 'none';
+            }
+
+            selectedBlock = hash;
+            blocks[hash].element.style.boxShadow = '0 0 10px 2px #ffc107';
+
+            blockInfoElement.innerHTML = `
+                <h3>Block Details</h3>
+                <p><strong>Hash:</strong> ${block.hash}</p>
+                <p><strong>Height:</strong> ${block.height}</p>
+                <p><strong>Parent:</strong> ${block.parent || 'Genesis Block'}</p>
+                <p><strong>Timestamp:</strong> ${new Date(parseInt(block.timestamp)).toLocaleString()}</p>
+                <p><strong>Transactions:</strong> ${block.transactions}</p>
+            `;
+            blockInfoElement.style.display = 'block';
+        }
+
+        // Initialize
+        function init() {
+            // Calculate blocks per screen
+            blocksPerScreen = calculateBlocksPerScreen();
+
+            // Start polling for tip height
+            pollForTipHeight();
+        }
+
+        // Run initialization
+        init();
+	</script>
+</body>
+
+</html>
