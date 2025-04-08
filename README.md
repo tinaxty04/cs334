@@ -5,7 +5,7 @@ Welcome! This is the repository for the required projects of the above course.
 ## Project Suggestion
 You should create your own *private* repo to avoid your code being seen by others. **We recommend you refer to [this post](https://medium.com/@bilalbayasut/github-how-to-make-a-fork-of-public-repository-private-6ee8cacaf9d3) when creating your private repo.** If you wish to pull the latest updates from this public repo, you can run the following:
 ```
-$ git remote add public https://github.com/bchnu/334s24.git
+$ git remote add public https://github.com/bchnu/334s25.git
 $ git pull public master
 ```
 

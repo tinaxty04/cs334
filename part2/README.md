@@ -13,8 +13,8 @@ This assignment should be based on your code in part 1. You are going to finish 
 
 ## Code provided
 The following files are related to this assignment.
-1. *src/block.rs* - We have provided some reference code [here](https://github.com/bchnu/334s24/blob/master/part2/block.rs). If you decide to base your work on the reference code, please read the file above to get familiar with the struct **Block** and fill up the function `default_difficulty()`. The **Block** struct should have the same structure as the one provided in the reference code.
-2. *src/blockchain.rs* - Please finish **Blockchain** struct and some functions related to it in this file. In [this file](https://github.com/bchnu/334s24/blob/master/part2/blockchain.rs), we have provided some hints and a couple of extra test cases. Also, you're free to work on, partially adapt, or ignore the reference code above.
+1. *src/block.rs* - We have provided some reference code [here](block.rs). If you decide to base your work on the reference code, please read the file above to get familiar with the struct **Block** and fill up the function `default_difficulty()`. The **Block** struct should have the same structure as the one provided in the reference code.
+2. *src/blockchain.rs* - Please finish **Blockchain** struct and some functions related to it in this file. In [this file](blockchain.rs), we have provided some hints and a couple of extra test cases. Also, you're free to work on, partially adapt, or ignore the reference code above.
 
 If you base your work on the reference code, be sure to copy the code into corresponding files in `src/`.
 
