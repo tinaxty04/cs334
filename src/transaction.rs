@@ -1,7 +1,8 @@
-use serde::{Serialize,Deserialize};
-use ring::signature::{Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters, ED25519};
+use ring::signature::{Ed25519KeyPair, Signature, KeyPair};
+use serde::{Serialize, Deserialize};
 use bincode;
 use rand::random;
+use crate::crypto::hash::{H256, Hashable};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Input {
@@ -13,7 +14,7 @@ pub struct Output {
     pub value: u32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct RawTransaction {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
@@ -32,7 +33,6 @@ pub fn sign(t: &RawTransaction, key: &Ed25519KeyPair) -> Signature {
     key.sign(&serialized)
 }
 
-
 /// Verify digital signature of a transaction, using public key instead of secret key
 pub fn verify(t: &RawTransaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicKey, signature: &Signature) -> bool {
     let serialized = bincode::serialize(t).unwrap();
@@ -40,11 +40,18 @@ pub fn verify(t: &RawTransaction, public_key: &<Ed25519KeyPair as KeyPair>::Publ
     unparsed.verify(&serialized, signature.as_ref()).is_ok()
 }
 
+/* Please add the following code snippet into `src/transaction.rs`: */
+impl Hashable for RawTransaction {
+    fn hash(&self) -> H256 {
+        let bytes = bincode::serialize(&self).unwrap();
+        ring::digest::digest(&ring::digest::SHA256, &bytes).into()
+    }
+}
+
 #[cfg(any(test, test_utilities))]
 mod tests {
     use super::*;
     use crate::crypto::key_pair;
-    use rand::random;
 
     pub fn generate_random_transaction() -> RawTransaction {
         // Create a simple transaction with just one input and one output

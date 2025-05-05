@@ -102,3 +102,4 @@ pub mod test {
         Block { header, content }
     }
 }
+
