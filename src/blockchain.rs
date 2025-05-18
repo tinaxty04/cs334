@@ -1,6 +1,5 @@
 use crate::block::Block;
 use crate::crypto::hash::{H256, Hashable};
-use crate::block::test::generate_random_block;
 use std::collections::HashMap;
 
 pub struct Blockchain {
@@ -57,7 +56,7 @@ impl Blockchain {
     }
 
     /// Get the last block's hash of the longest chain
-    #[cfg(any(test, test_utilities))]
+    #[cfg(test)]
     pub fn all_blocks_in_longest_chain(&self) -> Vec<H256> {
         let mut chain = Vec::new();
         let mut current_hash = self.tip;
@@ -79,8 +78,17 @@ impl Blockchain {
         chain.reverse();
         chain
     }
-}
 
+    /// Get the number of blocks in the blockchain
+    pub fn num_blocks(&self) -> usize {
+        self.hash_to_block.len()
+    }
+
+    /// Get a block by its hash
+    pub fn get_block(&self, hash: &H256) -> Option<&Block> {
+        self.hash_to_block.get(hash)
+    }
+}
 #[cfg(any(test, test_utilities))]
 mod tests {
     use super::*;
@@ -94,9 +102,7 @@ mod tests {
         blockchain.insert(&block);
         assert_eq!(blockchain.tip(), block.hash());
     }
-}
-
-#[test]
+    #[test]
     fn mp1_insert_chain() {
         let mut blockchain = Blockchain::new();
         let genesis_hash = blockchain.tip();
@@ -137,3 +143,4 @@ mod tests {
         blockchain.insert(&block_5);
         assert_eq!(blockchain.tip(), block_5.hash());
     }
+}

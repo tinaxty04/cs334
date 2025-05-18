@@ -107,7 +107,7 @@ impl PartialOrd for H256 {
     }
 }
 
-#[cfg(any(test, test_utilities))]
+#[cfg(test)]
 pub mod tests {
     use super::H256;
     use rand::Rng;

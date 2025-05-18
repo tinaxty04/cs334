@@ -34,10 +34,9 @@ pub struct Block {
 /// - Note: a valid block must satisfy that `block.hash() <= difficulty`.
 ///   In other words, the _smaller_ the `difficulty`, the harder it actually is to mine a block!
 fn default_difficulty() -> [u8; 32] {
-    // Set difficulty to a reasonable value for testing
-    // Using 0x0000...0001 (256^31) as difficulty
+    // Set difficulty to a very hard value
     let mut difficulty = [0u8; 32];
-    difficulty[31] = 1;  // Set last byte to 1
+    difficulty[31] = 0x01; // Only hashes ending in 0x00 or 0x01 are valid
     difficulty
 }
 
@@ -62,6 +61,16 @@ impl Block {
         };
         let content = Content { transactions };
         Block { header, content }
+    }
+
+    /// Returns the default difficulty, which is a big-endian 32-byte integer.
+    /// - Note: a valid block must satisfy that `block.hash() <= difficulty`.
+    ///   In other words, the _smaller_ the `difficulty`, the harder it actually is to mine a block!
+    pub fn default_difficulty() -> H256 {
+        // Set difficulty to a very hard value
+        let mut difficulty = [0u8; 32];
+        difficulty[31] = 0x01; // Only hashes ending in 0x00 or 0x01 are valid
+        H256::from(difficulty)
     }
 }
 
@@ -106,32 +115,29 @@ pub mod test {
     use super::*;
     use crate::crypto::hash::H256;
     use crate::crypto::merkle::MerkleTree;
+    use rand::Rng;
 
-    /// Generate a random block for testing
-    /// 
-    /// Creates a block with:
-    /// - Single default transaction
-    /// - Random nonce and timestamp
-    /// - Merkle root of transactions
-    /// - Specified parent hash
     pub fn generate_random_block(parent: &H256) -> Block {
-        // Create a single default transaction
+        let mut rng = rand::thread_rng();
+        let nonce = rng.gen();
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        
         let transactions: Vec<RawTransaction> = vec![Default::default()];
+        let merkle_tree = MerkleTree::new(&transactions);
+        let merkle_root = merkle_tree.root();
         
-        // Compute merkle root of transactions
-        let root = MerkleTree::new(&transactions).root();
-        
-        // Create header with random values
-        let header = Header {
-            parent: *parent,
-            nonce: rand::random(),        // Random nonce for testing
-            difficulty: default_difficulty().into(),
-            timestamp: rand::random(),    // Random timestamp for testing
-            merkle_root: root,
-        };
-        
-        // Create and return block
-        let content = Content { transactions };
-        Block { header, content }
+        Block {
+            header: Header {
+                parent: *parent,
+                nonce,
+                difficulty: Block::default_difficulty(),
+                timestamp,
+                merkle_root,
+            },
+            content: Content { transactions },
+        }
     }
 }
