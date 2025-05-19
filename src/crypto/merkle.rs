@@ -1,5 +1,6 @@
 use super::hash::{Hashable, H256};
 use ring::digest;
+use hex_literal::hex;
 
 /// A Merkle tree node
 #[derive(Debug, Default, Clone)]

@@ -10,9 +10,7 @@ use std::time;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::block::Block;
 use crate::crypto::hash::Hashable;
-use crate::crypto::hash::H256;
 
 enum ControlSignal {
     Start(u64), // the number controls the lambda of interval between block generation
@@ -87,6 +85,7 @@ impl Context {
         match signal {
             ControlSignal::Exit => {
                 info!("Miner shutting down");
+                let blockchain = self.blockchain.lock().unwrap();
                 self.operating_state = OperatingState::ShutDown;
             }
             ControlSignal::Start(i) => {
@@ -149,7 +148,6 @@ impl Context {
 
             // Try different nonces until we find a valid block
             let mut nonce = 0u32;
-            let mut attempts = 0;
             loop {
                 // Create block header
                 let header = crate::block::Header {
@@ -177,6 +175,9 @@ impl Context {
                     // Insert block into blockchain
                     let mut blockchain = self.blockchain.lock().unwrap();
                     blockchain.insert(&block);
+                    drop(blockchain);
+                    // Broadcast new block hash to peers
+                    self.server.broadcast(crate::network::message::Message::NewBlockHashes(vec![block_hash]));
                     info!("Block inserted into blockchain");
                     break;
                 }

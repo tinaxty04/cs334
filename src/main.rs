@@ -21,6 +21,7 @@ use std::thread;
 use std::time;
 use std::sync::{Arc, Mutex};
 use crate::blockchain::Blockchain;
+use crate::crypto::hash::Hashable;
 
 fn main() {
     // parse command line arguments
@@ -75,15 +76,19 @@ fn main() {
             error!("Error parsing P2P workers: {}", e);
             process::exit(1);
         });
+
+    // Initialize blockchain
+    let blockchain = Arc::new(Mutex::new(Blockchain::new()));
+
     let worker_ctx = worker::new(
         p2p_workers,
         msg_rx,
         &server,
+        &blockchain,
     );
     worker_ctx.start();
 
-    // Initialize blockchain
-    let blockchain = Arc::new(Mutex::new(Blockchain::new()));
+
 
     // start the miner
     let (miner_ctx, miner) = miner::new(
