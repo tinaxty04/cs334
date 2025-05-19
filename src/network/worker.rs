@@ -98,16 +98,19 @@ impl Context {
                         }
                         // PoW validity check
                         let difficulty = block.header.difficulty;
-                        let expected_difficulty = blockchain.get_block(&block.header.parent)
-                            .map(|parent| parent.header.difficulty)
-                            .unwrap_or(blockchain.get_block(&blockchain.tip()).unwrap().header.difficulty);
+                        let expected_difficulty = blockchain.get_block(&blockchain.tip()).unwrap().header.difficulty;
                         if !(block_hash <= difficulty && difficulty == expected_difficulty) {
                             info!("Received invalid block (PoW or difficulty mismatch)");
                             continue;
                         }
                         // Parent check
                         if blockchain.get_block(&block.header.parent).is_some() {
+                            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+                            let delay = now.saturating_sub(block.header.timestamp);
                             blockchain.insert(&block);
+                            blockchain.hash_to_origin.insert(block_hash, crate::blockchain::BlockOrigin::Received { delay_ms: delay });
+                            let block_size = bincode::serialize(&block).unwrap().len();
+                            info!("Received block: hash={:?}, delay={} ms, size={} bytes", block_hash, delay, block_size);
                             new_hashes.push(block_hash);
                             // Orphan handler: check if this block is parent to any orphans
                             let mut orphans_to_process = Vec::new();

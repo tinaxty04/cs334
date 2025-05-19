@@ -30,14 +30,16 @@ pub struct Block {
     pub content: Content,
 }
 
-/// Returns the default difficulty, which is a big-endian 32-byte integer.
-/// - Note: a valid block must satisfy that `block.hash() <= difficulty`.
-///   In other words, the _smaller_ the `difficulty`, the harder it actually is to mine a block!
-fn default_difficulty() -> [u8; 32] {
-    // Set difficulty to a very hard value
-    let mut difficulty = [0u8; 32];
-    difficulty[31] = 0x01; // Only hashes ending in 0x00 or 0x01 are valid
-    difficulty
+
+//default difficulty
+pub fn default_difficulty() -> H256 {
+    let mut difficulty = [0x00u8; 32];
+    // Try requiring the first two bytes to be zero, and the third to be 0x0f
+    // This means only hashes starting with 16 bits of zero and the next nibble <= 0x0f are valid
+    difficulty[0] = 0x00;
+    difficulty[1] = 0x00;
+    difficulty[2] = 0x03; // You can lower this to 0x07, 0x03, or 0x01 for even harder
+    H256::from(difficulty)
 }
 
 impl Block {

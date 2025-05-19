@@ -29,6 +29,7 @@ pub struct Context {
     operating_state: OperatingState,
     server: ServerHandle,
     blockchain: Arc<Mutex<Blockchain>>,
+    blocks_mined: usize,
 }
 
 #[derive(Clone)]
@@ -48,6 +49,7 @@ pub fn new(
         operating_state: OperatingState::Paused,
         server: server.clone(),
         blockchain: Arc::clone(blockchain),
+        blocks_mined: 0,
     };
 
     let handle = Handle {
@@ -86,6 +88,8 @@ impl Context {
             ControlSignal::Exit => {
                 info!("Miner shutting down");
                 let blockchain = self.blockchain.lock().unwrap();
+                info!("Blocks mined by this process: {}", self.blocks_mined);
+                info!("Blockchain length: {} blocks", blockchain.num_blocks());
                 self.operating_state = OperatingState::ShutDown;
             }
             ControlSignal::Start(i) => {
@@ -135,6 +139,7 @@ impl Context {
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_millis();
+            info!("Block timestamp (ms since epoch): {}", timestamp);
 
             // Empty transactions for now
             let transactions: Vec<crate::transaction::RawTransaction> = Vec::new();
@@ -171,7 +176,8 @@ impl Context {
                 if block_hash <= difficulty {
                     info!("Found a block! Hash: {:?}", block_hash);
                     info!("Difficulty: {:?}", difficulty);
-                    
+                    let block_size = bincode::serialize(&block).unwrap().len();
+                    info!("Block size: {} bytes", block_size);
                     // Insert block into blockchain
                     let mut blockchain = self.blockchain.lock().unwrap();
                     blockchain.insert(&block);
@@ -179,6 +185,7 @@ impl Context {
                     // Broadcast new block hash to peers
                     self.server.broadcast(crate::network::message::Message::NewBlockHashes(vec![block_hash]));
                     info!("Block inserted into blockchain");
+                    self.blocks_mined += 1;
                     break;
                 }
 
