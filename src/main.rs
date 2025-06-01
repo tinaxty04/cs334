@@ -9,6 +9,8 @@ pub mod crypto;
 pub mod miner;
 pub mod network;
 pub mod transaction;
+pub mod mempool;
+pub mod transaction_generator;
 
 use clap::clap_app;
 use crossbeam::channel;
@@ -80,22 +82,39 @@ fn main() {
     // Initialize blockchain
     let blockchain = Arc::new(Mutex::new(Blockchain::new()));
 
+    // Initialize mempool
+    let mempool = Arc::new(Mutex::new(mempool::Mempool::new()));
+    log::info!("Mempool initialized and shared.");
+
     let worker_ctx = worker::new(
         p2p_workers,
         msg_rx,
         &server,
         &blockchain,
+        &mempool,
     );
+    log::info!("Worker initialized and started.");
     worker_ctx.start();
-
-
 
     // start the miner
     let (miner_ctx, miner) = miner::new(
         &server,
         &blockchain,
+        &mempool,
     );
+    log::info!("Miner initialized and started.");
     miner_ctx.start();
+
+    // start the transaction generator
+    let keypair = crate::crypto::key_pair::random();
+    let tx_generator = transaction_generator::TransactionGenerator::new(
+        &server,
+        &mempool,
+        &blockchain,
+        keypair,
+    );
+    log::info!("Transaction generator initialized and started.");
+    tx_generator.start();
 
     // connect to known peers
     if let Some(known_peers) = matches.values_of("known_peer") {

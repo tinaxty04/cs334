@@ -6,6 +6,7 @@ use log::{debug, warn, info};
 use std::sync::{Arc, Mutex};
 use crate::blockchain::Blockchain;
 use crate::crypto::hash::Hashable;
+use crate::mempool::Mempool;
 
 use std::thread;
 
@@ -15,7 +16,7 @@ pub struct Context {
     num_worker: usize,
     server: ServerHandle,
     blockchain: Arc<Mutex<Blockchain>>,
-    // mempool: Arc<Mutex<Mempool>>,  // not yet required
+    mempool: Arc<Mutex<Mempool>>,
     // (Optional: you may define other state variables here)
 }
 
@@ -24,12 +25,14 @@ pub fn new(
     msg_src: channel::Receiver<(Vec<u8>, peer::Handle)>,
     server: &ServerHandle,
     blockchain: &Arc<Mutex<Blockchain>>,
+    mempool: &Arc<Mutex<Mempool>>,
 ) -> Context {
     Context {
         msg_chan: msg_src,
         num_worker,
         server: server.clone(),
         blockchain: Arc::clone(blockchain),
+        mempool: Arc::clone(mempool),
     }
 }
 

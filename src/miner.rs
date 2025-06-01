@@ -11,6 +11,7 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::crypto::hash::Hashable;
+use crate::mempool::Mempool;
 
 enum ControlSignal {
     Start(u64), // the number controls the lambda of interval between block generation
@@ -29,6 +30,7 @@ pub struct Context {
     operating_state: OperatingState,
     server: ServerHandle,
     blockchain: Arc<Mutex<Blockchain>>,
+    mempool: Arc<Mutex<Mempool>>,
     blocks_mined: usize,
 }
 
@@ -41,6 +43,7 @@ pub struct Handle {
 pub fn new(
     server: &ServerHandle,
     blockchain: &Arc<Mutex<Blockchain>>,
+    mempool: &Arc<Mutex<Mempool>>,
 ) -> (Context, Handle) {
     let (signal_chan_sender, signal_chan_receiver) = unbounded();
 
@@ -49,6 +52,7 @@ pub fn new(
         operating_state: OperatingState::Paused,
         server: server.clone(),
         blockchain: Arc::clone(blockchain),
+        mempool: Arc::clone(mempool),
         blocks_mined: 0,
     };
 
@@ -141,8 +145,34 @@ impl Context {
                 .as_millis();
             info!("Block timestamp (ms since epoch): {}", timestamp);
 
-            // Empty transactions for now
-            let transactions: Vec<crate::transaction::RawTransaction> = Vec::new();
+            // Create transactions to make block size ~256 bytes
+            let mut transactions: Vec<crate::transaction::RawTransaction> = Vec::new();
+            let mut block_size = 0;
+            let target_size = 256;
+            
+            // Add transactions until we reach target size
+            while block_size < target_size {
+                let tx = crate::transaction::RawTransaction::default();
+                let tx_size = bincode::serialize(&tx).unwrap().len();
+                // Add transaction and check total block size
+                transactions.push(tx);
+                let test_block = crate::block::Block {
+                    header: crate::block::Header {
+                        parent: parent_hash,
+                        nonce: 0,
+                        difficulty,
+                        timestamp,
+                        merkle_root: Default::default(),
+                    },
+                    content: crate::block::Content {
+                        transactions: transactions.clone(),
+                    },
+                };
+                block_size = bincode::serialize(&test_block).unwrap().len();
+                if block_size >= target_size {
+                    break;
+                }
+            }
             
             // Create merkle root from transactions
             let merkle_root = if transactions.is_empty() {
@@ -181,11 +211,14 @@ impl Context {
                     // Insert block into blockchain
                     let mut blockchain = self.blockchain.lock().unwrap();
                     blockchain.insert(&block);
+                    self.blocks_mined += 1;
+                    info!("Blocks mined so far: {}", self.blocks_mined);
+                    println!("Blocks in blockchain (all known): {}", blockchain.num_blocks());
+
                     drop(blockchain);
                     // Broadcast new block hash to peers
                     self.server.broadcast(crate::network::message::Message::NewBlockHashes(vec![block_hash]));
                     info!("Block inserted into blockchain");
-                    self.blocks_mined += 1;
                     break;
                 }
 
