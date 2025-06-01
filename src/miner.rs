@@ -210,7 +210,8 @@ impl Context {
                     info!("Block size: {} bytes", block_size);
                     // Insert block into blockchain
                     let mut blockchain = self.blockchain.lock().unwrap();
-                    blockchain.insert(&block);
+                    let mut mempool = self.mempool.lock().unwrap();
+                    blockchain.insert(&block, Some(&mut mempool));
                     self.blocks_mined += 1;
                     info!("Blocks mined so far: {}", self.blocks_mined);
                     println!("Blocks in blockchain (all known): {}", blockchain.num_blocks());

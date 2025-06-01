@@ -1,4 +1,6 @@
 use serde::{Serialize,Deserialize};
+use ring::signature::Ed25519KeyPair;
+use ring::signature::KeyPair;
 
 /// A 160-bit public address.
 #[derive(Eq, PartialEq, Serialize, Deserialize, Clone, Hash, Default, Copy)]
@@ -55,4 +57,12 @@ impl std::convert::From<[u8; 20]> for H160 {
     fn from(input: [u8; 20]) -> H160 {
         H160(input)
     }
+}
+
+/// Get a deterministic keypair from a nonce:
+pub fn get_deterministic_keypair(nonce: u8) -> Ed25519KeyPair {
+    let mut seed = [0u8; 32];
+    seed[0] = nonce;
+    let keypair = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
+    keypair
 }

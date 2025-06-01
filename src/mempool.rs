@@ -36,6 +36,21 @@ impl Mempool {
             None
         }
     }
+
+    /// Remove a transaction by hash
+    pub fn remove(&mut self, hash: &H256) {
+        self.hash_to_transaction.remove(hash);
+    }
+
+    /// Check if the mempool is empty
+    pub fn is_empty(&self) -> bool {
+        self.hash_to_transaction.is_empty()
+    }
+
+    /// Get all transaction hashes in the mempool
+    pub fn all_hashes(&self) -> Vec<H256> {
+        self.hash_to_transaction.keys().cloned().collect()
+    }
         
     // TODO Optional: you may want to add more methods here...
 }
