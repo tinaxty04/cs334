@@ -10,7 +10,10 @@ pub enum Message {
     NewBlockHashes(Vec<H256>),
     GetBlocks(Vec<H256>),
     Blocks(Vec<Block>),
+<<<<<<< HEAD
     // Transaction network messages
+=======
+>>>>>>> b920444 (Initial commit for demo done)
     NewTransactionHashes(Vec<H256>),
     GetTransactions(Vec<H256>),
     Transactions(Vec<Transaction>),

@@ -387,6 +387,16 @@ impl Handle {
             .send(ControlSignal::BroadcastMessage(msg))
             .unwrap();
     }
+<<<<<<< HEAD
+=======
+
+    pub fn get_addr(&self) -> String {
+        // This is a workaround: the Handle struct does not store the address directly.
+        // You may want to refactor to store the address in Handle if needed.
+        // For now, return a placeholder or implement as needed.
+        "unknown_addr".to_string()
+    }
+>>>>>>> b920444 (Initial commit for demo done)
 }
 
 enum ControlSignal {

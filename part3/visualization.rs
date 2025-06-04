@@ -93,6 +93,28 @@ impl Server {
                         return;
                     }
 
+<<<<<<< HEAD
+=======
+                    // API endpoint for getting all account balances
+                    if req.url() == "/api/accounts" {
+                        let blockchain = blockchain.lock().unwrap();
+                        let state = blockchain.get_state_for_tip();
+                        let accounts: Vec<_> = state.all_accounts().into_iter().map(|(addr, nonce, balance)| {
+                            json!({
+                                "address": format!("{}", addr),
+                                "nonce": nonce,
+                                "balance": balance
+                            })
+                        }).collect();
+                        let json_response = serde_json::to_string(&accounts).unwrap();
+                        let content_type = "Content-Type: application/json".parse::<Header>().unwrap();
+                        let resp = Response::from_string(json_response)
+                            .with_header(content_type);
+                        req.respond(resp).unwrap();
+                        return;
+                    }
+
+>>>>>>> b920444 (Initial commit for demo done)
                     // a valid url requires a base
                     let base_url = Url::parse(&format!("http://{}/", &addr)).unwrap();
                     let url = match base_url.join(req.url()) {
@@ -214,3 +236,7 @@ impl Server {
         info!("API server listening at {}", &addr);
     }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> b920444 (Initial commit for demo done)
