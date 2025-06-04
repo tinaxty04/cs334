@@ -236,7 +236,3 @@ impl Server {
         info!("API server listening at {}", &addr);
     }
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> b920444 (Initial commit for demo done)

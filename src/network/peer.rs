@@ -225,11 +225,8 @@ impl Handle {
             warn!("Failed to send write request for peer {}, channel detached", self.addr);
         }
     }
-<<<<<<< HEAD
-=======
 
     pub fn get_addr(&self) -> std::net::SocketAddr {
         self.addr
     }
->>>>>>> b920444 (Initial commit for demo done)
 }

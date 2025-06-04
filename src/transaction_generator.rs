@@ -1,39 +1,3 @@
-<<<<<<< HEAD
-use serde::{Serialize,Deserialize};
-use ring::signature::{Ed25519KeyPair, Signature, KeyPair, VerificationAlgorithm, EdDSAParameters};
-use crate::crypto::hash::{H256, Hashable};
-
-use crate::network::server::Handle as ServerHandle;
-use std::thread;
-use std::time::Duration;
-use std::sync::{Arc, Mutex};
-use crate::mempool::Mempool;
-use crate::network::message::Message;
-use crate::blockchain::{Blockchain};
-use crate::crypto::address::{get_deterministic_keypair, H160};
-use crate::transaction::{RawTransaction, SignedTransaction};
-use log::info;
-
-pub struct TransactionGenerator {
-    server: ServerHandle,
-    mempool: Arc<Mutex<Mempool>>,
-    blockchain: Arc<Mutex<Blockchain>>,
-    controlled_keypair: Ed25519KeyPair,
-}
-
-impl TransactionGenerator {
-    pub fn new(
-        server: &ServerHandle,
-        mempool: &Arc<Mutex<Mempool>>,
-        blockchain: &Arc<Mutex<Blockchain>>,
-        controlled_keypair: Ed25519KeyPair
-    ) -> TransactionGenerator {
-        TransactionGenerator {
-            server: server.clone(),
-            mempool: Arc::clone(mempool),
-            blockchain: Arc::clone(blockchain),
-            controlled_keypair,
-=======
 use std::time;
 use std::thread;
 use rand::Rng;
@@ -61,60 +25,10 @@ impl TransactionGenerator {
             server: server.clone(),
             mempool: mempool.clone(),
             blockchain: blockchain.clone(),
->>>>>>> b920444 (Initial commit for demo done)
         }
     }
 
     pub fn start(self) {
-<<<<<<< HEAD
-        thread::spawn(move || {
-            let mut sender_idx = 0;
-            loop {
-                // Pick sender and recipient from ICO accounts
-                let sender_key = get_deterministic_keypair(sender_idx);
-                let sender_addr = H160::from_pubkey(sender_key.public_key().as_ref());
-                let recipient_idx = (sender_idx + 1) % 10;
-                let recipient_key = get_deterministic_keypair(recipient_idx);
-                let recipient_addr = H160::from_pubkey(recipient_key.public_key().as_ref());
-
-                // Get current state
-                let blockchain = self.blockchain.lock().unwrap();
-                let tip = blockchain.tip();
-                let state = blockchain.hash_to_state.get(&tip).unwrap();
-                let (nonce, balance) = state.map.get(&sender_addr).cloned().unwrap_or((0, 0));
-                drop(blockchain);
-
-                // Only send if sender has enough balance
-                let value = 1;
-                if balance >= value {
-                    let raw_tx = RawTransaction {
-                        from_addr: sender_addr,
-                        to_addr: recipient_addr,
-                        value,
-                        nonce: nonce + 1,
-                    };
-                    let signed_tx = SignedTransaction::from_raw(raw_tx.clone(), &sender_key);
-
-                    // Insert into mempool if valid
-                    let mut mempool = self.mempool.lock().unwrap();
-                    if mempool.get_transaction(&signed_tx.hash()).is_none() {
-                        mempool.insert(signed_tx.clone());
-                        info!("[TxGen] Generated and inserted transaction: from {:?} to {:?}, value {}, nonce {}", sender_addr, recipient_addr, value, nonce + 1);
-                        drop(mempool);
-                        // Broadcast the hash
-                        self.server.broadcast(Message::NewTransactionHashes(vec![signed_tx.hash()]));
-                        info!("[TxGen] Broadcasted transaction hash: {:?}", signed_tx.hash());
-                    }
-                } else {
-                    info!("[TxGen] Sender {:?} has insufficient balance ({}), skipping", sender_addr, balance);
-                }
-                sender_idx = (sender_idx + 1) % 10;
-                thread::sleep(Duration::from_secs(3));
-            }
-        });
-    }
-}
-=======
         info!("[TxGen] Starting transaction generator");
         thread::spawn(move || {
             self.generation_loop();
@@ -177,27 +91,15 @@ impl TransactionGenerator {
                 // Generate transaction with current nonce
                 let max_value = sender_balance.min(10);
                 let value = rng.gen_range(1, max_value + 1);
-
-                // With 10% probability, generate an invalid transaction
-                let (tx_value, tx_nonce, rejection_reason) = if rng.gen_bool(0.1) {
-                    // 50% chance: too high value, 50% chance: invalid nonce
-                    if rng.gen_bool(0.5) {
-                        (sender_balance + 1000, next_nonce, Some("Insufficient balance".to_string())) // Too high value
-                    } else {
-                        (value, next_nonce + 5, Some("Invalid nonce".to_string())) // Invalid nonce
-                    }
-                } else {
-                    (value, next_nonce, None)
-                };
-
+                
                 info!("[TxGen] Attempting to generate tx: from={} to={} value={} current_nonce={} next_nonce={}", 
-                    sender_addr, receiver_addr, tx_value, sender_nonce, tx_nonce);
+                    sender_addr, receiver_addr, value, sender_nonce, next_nonce);
 
                 let raw_tx = RawTransaction {
                     from_addr: sender_addr,
                     to_addr: receiver_addr,
-                    value: tx_value,
-                    nonce: tx_nonce,
+                    value,
+                    nonce: next_nonce,
                 };
                 let signed_tx = SignedTransaction::from_raw(raw_tx.clone(), &sender_keypair);
                 let tx_hash = signed_tx.hash();
@@ -205,23 +107,18 @@ impl TransactionGenerator {
                 // Try to add to mempool
                 let tx_added = {
                     let mut mempool = self.mempool.lock().unwrap();
-                    if let Some(reason) = rejection_reason {
-                        // If this is an invalid transaction, add it with rejected status
-                        mempool.add_with_status(signed_tx.clone(), "rejected", reason)
-                    } else {
-                        mempool.add(signed_tx.clone())
-                    }
+                    mempool.add_transaction(signed_tx.clone())
                 };
 
                 if tx_added {
                     // Broadcast only if successfully added to mempool
                     self.server.broadcast(Message::NewTransactionHashes(vec![tx_hash]));
                     info!("[TxGen] Successfully generated and broadcast tx: from={} to={} value={} nonce={}", 
-                        sender_addr, receiver_addr, tx_value, tx_nonce);
+                        sender_addr, receiver_addr, value, next_nonce);
                     break; // Success, exit retry loop
                 } else {
                     warn!("[TxGen] Failed to add transaction to mempool (attempt {}/{}): from={} to={} value={} nonce={}", 
-                        retries + 1, MAX_RETRIES, sender_addr, receiver_addr, tx_value, tx_nonce);
+                        retries + 1, MAX_RETRIES, sender_addr, receiver_addr, value, next_nonce);
                     retries += 1;
                     if retries < MAX_RETRIES {
                         thread::sleep(time::Duration::from_millis(RETRY_DELAY_MS));
@@ -277,4 +174,3 @@ impl TransactionGenerator {
         }
     }
 } 
->>>>>>> b920444 (Initial commit for demo done)

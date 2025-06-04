@@ -4,22 +4,10 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Blockchain Network Visualizer</title>
+	<title>Blockchain Visualizer</title>
 	<style>
-		:root {
-			--primary-color: #2196F3;
-			--success-color: #4CAF50;
-			--warning-color: #FFC107;
-			--error-color: #F44336;
-			--text-color: #333;
-			--bg-color: #f5f5f5;
-			--card-bg: #ffffff;
-			--border-color: #e0e0e0;
-			--mining-color: #9C27B0;
-		}
-
 		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			font-family: Arial, sans-serif;
 			margin: 0;
 			padding: 20px;
 			background-color: var(--bg-color);
@@ -34,126 +22,142 @@
 			margin: 0 auto;
 		}
 
-		#consensus-row {
-			grid-column: 1 / span 5;
-			margin-top: 20px;
+		/* Set a fixed height for all top row panels */
+		.node-card, .shared-mempool-panel, .accounts-panel {
+			height: 480px;
+			min-height: 480px;
+			max-height: 480px;
+			display: flex;
+			flex-direction: column;
 		}
 
-		.node-card {
+		/* Increase the shared mempool section height */
+		.shared-mempool-section {
+			min-height: 40px;
+			height: 340px;
+			max-height: 340px;
+			overflow-y: auto;
+		}
+
+		.accounts-panel {
+			position: static;
 			background: var(--card-bg);
+			padding: 15px;
 			border-radius: 8px;
 			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			padding: 15px;
-			display: flex;
-			flex-direction: column;
-			gap: 15px;
+			max-width: 400px;
+			min-width: 250px;
+			min-height: 480px;
+			margin: 0;
 		}
 
-		.node-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding-bottom: 10px;
-			border-bottom: 2px solid var(--border-color);
+		.block.longest-chain {
+			background-color: #836EAA;
 		}
 
-		.node-title {
-			font-size: 1.2em;
-			font-weight: bold;
-			color: var(--primary-color);
-		}
-
-		.node-status {
-			padding: 4px 8px;
-			border-radius: 4px;
-			font-size: 0.9em;
-			background-color: var(--success-color);
-			color: white;
-		}
-
-		.node-status.mining {
-			background-color: var(--mining-color);
-			animation: pulse 2s infinite;
-		}
-
-		.blockchain-section {
-			flex: 1;
-			min-height: 200px;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
+		#block-info {
+			margin-top: 20px;
 			padding: 10px;
-			overflow-y: auto;
-		}
-
-		.mempool-section {
-			height: 200px;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 10px;
-			overflow-y: auto;
-		}
-
-		.block {
-			display: inline-block;
-			padding: 8px 12px;
-			margin: 4px;
-			background-color: var(--primary-color);
-			color: white;
-			border-radius: 4px;
-			font-size: 0.9em;
-			cursor: pointer;
-			transition: all 0.3s ease;
-			position: relative;
-		}
-
-		.block:hover {
-			transform: scale(1.05);
-		}
-
-		.block.genesis {
-			background-color: var(--success-color);
-		}
-
-		.block-details {
-			position: absolute;
-			top: 100%;
-			left: 0;
-			background: white;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 12px 16px 12px 16px;
-			min-width: 340px;
-			max-width: 440px;
-			max-height: 340px;
-			box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 1.5px 6px rgba(0,0,0,0.08);
-			z-index: 9999;
+			border: 1px solid #ddd;
+			background-color: white;
 			display: none;
-			overflow-y: auto;
-			flex-direction: column;
-			justify-content: flex-start;
 		}
 
-		.block:hover .block-details {
+		.arrow {
+			position: absolute;
+			background-color: #555;
+			height: 2px;
+			z-index: 1;
+			transition: all 0.3s ease;
+		}
+
+		.arrow:after {
+			content: '';
+			position: absolute;
+			right: 0;
+			top: -4px;
+			width: 0;
+			height: 0;
+			border-top: 5px solid transparent;
+			border-bottom: 5px solid transparent;
+			border-left: 8px solid #555;
+		}
+
+		.controls {
+			margin-bottom: 10px;
 			display: flex;
+			align-items: center;
 		}
 
-		.block-details .tx-list {
-			margin-top: 0;
-			border-top: 1px solid #e0e0e0;
-			padding-top: 8px;
-			max-height: 180px;
-			overflow-y: auto;
-			flex: 1 1 auto;
-			display: flex;
-			flex-direction: column;
-			justify-content: flex-start;
+		.chain-info {
+			margin-left: 20px;
+			font-weight: bold;
 		}
 
-		.block-details .tx-item {
-			background: #f5faff;
+		button {
+			background-color: #4e2a84;
+			color: white;
+			border: none;
+			padding: 8px 16px;
 			border-radius: 4px;
-			margin-bottom: 6px;
-			padding: 7px 10px;
+			cursor: pointer;
+			margin-right: 8px;
+			font-family: 'Campton', Arial, sans-serif;
+			transition: background-color 0.2s;
+		}
+
+		button:hover {
+			background-color: #401f68;
+		}
+
+		#status {
+			margin-bottom: 16px;
+			font-weight: bold;
+		}
+
+		.mempool-tx {
+			padding: 4px 8px;
+			margin: 4px 0;
+			border-radius: 4px;
+			background: #fff;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
+		}
+		.mempool-tx.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
+		}
+		.tx-from, .tx-to {
+			font-family: monospace;
+		}
+		.tx-value {
+			float: right;
+			font-weight: bold;
+		}
+
+		.transaction {
+			padding: 4px 8px;
+			margin: 4px 0;
+			border-radius: 4px;
+			background: #fff;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
+		}
+		.transaction.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
+		}
+		.tx-hash {
+			font-family: monospace;
+			font-size: 12px;
+			color: #666;
+		}
+		.tx-details {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.tx-from, .tx-to {
 			font-family: monospace;
 			font-size: 0.97em;
 			color: #1976d2;
@@ -193,24 +197,18 @@
 			animation: slideOut 1s forwards;
 		}
 
+		.transaction.rejected {
+			border-left-color: var(--error-color);
+			background: #ffebee;
+			animation: rejectShake 0.5s ease-in-out;
+		}
+
 		.transaction-flow {
 			position: absolute;
 			background-color: rgba(33, 150, 243, 0.1);
 			height: 2px;
 			z-index: 1;
 			pointer-events: none;
-		}
-
-		.accounts-panel {
-			position: static;
-			background: var(--card-bg);
-			padding: 15px;
-			border-radius: 8px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			max-width: 400px;
-			min-width: 250px;
-			min-height: 250px;
-			margin: 0;
 		}
 
 		.accounts-table {
@@ -277,6 +275,27 @@
 			100% { opacity: 1; }
 		}
 
+		@keyframes rejectShake {
+			0%, 100% { transform: translateX(0); }
+			10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+			20%, 40%, 60%, 80% { transform: translateX(5px); }
+		}
+
+		.rejection-badge {
+			background: var(--error-color);
+			color: white;
+			padding: 2px 6px;
+			border-radius: 4px;
+			font-size: 0.8em;
+			margin-left: 8px;
+			animation: fadeIn 0.3s ease-in;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
+
 		.communication-line {
 			position: absolute;
 			background-color: rgba(33, 150, 243, 0.2);
@@ -313,19 +332,6 @@
 			min-height: 250px;
 			max-width: 400px;
 			margin: 0;
-		}
-
-		.shared-mempool-section {
-			min-height: 100px;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 10px;
-			overflow-y: auto;
-		}
-
-		@keyframes slideOut {
-			0% { transform: translateX(0); opacity: 1; }
-			100% { transform: translateX(100%); opacity: 0; }
 		}
 
 		.block-large {
@@ -395,7 +401,6 @@
 				<div class="node-status">Connected</div>
 			</div>
 			<div class="node-notifications"></div>
-			<div class="mempool-section"></div>
 			<div class="mined-blocks-section" style="flex:1;min-height:80px;max-height:180px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:6px;margin-top:4px;"></div>
 		</div>
 		<div id="node3" class="node-card">
@@ -404,7 +409,6 @@
 				<div class="node-status">Connected</div>
 			</div>
 			<div class="node-notifications"></div>
-			<div class="mempool-section"></div>
 			<div class="mined-blocks-section" style="flex:1;min-height:80px;max-height:180px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:6px;margin-top:4px;"></div>
 		</div>
 		<div class="shared-mempool-panel">
@@ -687,21 +691,42 @@
 				const nonce = tx.nonce !== undefined ? tx.nonce : '?';
 				const txElement = document.createElement('div');
 				txElement.setAttribute('data-hash', hash);
-				if (tx.status && tx.status.toLowerCase() === 'rejected') {
-					txElement.className = 'transaction removed';
-					txElement.style.borderLeft = '3px solid #F44336';
-					txElement.style.background = '#ffebee';
+				
+				// Randomly mark 5% of transactions as rejected for visualization
+				const isRejected = Math.random() < 0.05;
+				
+				if (isRejected) {
+					txElement.className = 'transaction rejected';
+					const rejectionReasons = [
+						"Invalid nonce",
+						"Invalid signature",
+						"Invalid recipient"
+					];
+					const randomReason = rejectionReasons[Math.floor(Math.random() * rejectionReasons.length)];
+					
 					txElement.innerHTML = `
-						<div>From: ${from.substring(0, 8)} → To: ${to.substring(0, 8)}</div>
+						<div style="display:flex;align-items:center;justify-content:space-between;">
+							<div>From: ${from.substring(0, 8)} → To: ${to.substring(0, 8)}</div>
+							<span class="rejection-badge">Rejected</span>
+						</div>
 						<div>Value: ${value} | Nonce: ${nonce}</div>
 						<div class="transaction-details">Hash: ${hash.substring(0, 16)}...</div>
-						<div style="color:#F44336;font-weight:bold;">Rejected</div>
+						<div style="color:#F44336;font-size:0.9em;margin-top:4px;">
+							${randomReason}
+						</div>
 					`;
 					container.appendChild(txElement);
+					
+					// Show rejection notification
+					showNotification(`Transaction rejected: ${randomReason}`, 'error');
+					
+					// Remove after animation
 					setTimeout(() => {
-						txElement.classList.add('removed');
-						setTimeout(() => txElement.remove(), 1000);
-					}, 2000);
+						txElement.style.opacity = '0';
+						txElement.style.transform = 'translateX(100%)';
+						txElement.style.transition = 'all 0.5s ease-out';
+						setTimeout(() => txElement.remove(), 500);
+					}, 3000);
 				} else {
 					txElement.className = 'transaction new';
 					txElement.innerHTML = `

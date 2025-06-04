@@ -17,6 +17,7 @@ pub fn new(
     let (control_signal_sender, control_signal_receiver) = channel::channel();
     let handle = Handle {
         control_chan: control_signal_sender,
+        addr,
     };
     let ctx = Context {
         peers: slab::Slab::new(),
@@ -367,6 +368,7 @@ impl Context {
 #[derive(Clone)]
 pub struct Handle {
     control_chan: channel::Sender<ControlSignal>,
+    addr: std::net::SocketAddr,
 }
 
 impl Handle {
@@ -387,16 +389,10 @@ impl Handle {
             .send(ControlSignal::BroadcastMessage(msg))
             .unwrap();
     }
-<<<<<<< HEAD
-=======
 
-    pub fn get_addr(&self) -> String {
-        // This is a workaround: the Handle struct does not store the address directly.
-        // You may want to refactor to store the address in Handle if needed.
-        // For now, return a placeholder or implement as needed.
-        "unknown_addr".to_string()
+    pub fn get_addr(&self) -> std::net::SocketAddr {
+        self.addr
     }
->>>>>>> b920444 (Initial commit for demo done)
 }
 
 enum ControlSignal {

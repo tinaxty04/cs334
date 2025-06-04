@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::blockchain::Blockchain;
 use crate::transaction::SignedTransaction;
-use crate::crypto::hash::{H256, Hashable};
+use crate::crypto::hash::H256;
 use crate::crypto::address::H160;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
@@ -37,7 +37,7 @@ pub enum TransactionStatus {
 
 pub struct Visualizer {
     pub blockchain: Arc<Mutex<Blockchain>>,
-    pub nodes: HashMap<String, NodeState>,
+    nodes: HashMap<String, NodeState>,
 }
 
 impl Visualizer {
@@ -53,27 +53,6 @@ impl Visualizer {
         let tip = blockchain.tip();
         let tip_block = blockchain.get_block(&tip).unwrap();
         
-        // Get recent transactions from the last few blocks
-        let mut recent_transactions = Vec::new();
-        let mut current_hash = tip;
-        for _ in 0..5 { // Look at last 5 blocks
-            if let Some(block) = blockchain.get_block(&current_hash) {
-                for tx in &block.content.transactions {
-                    recent_transactions.push(TransactionInfo {
-                        hash: tx.hash(),
-                        from: tx.raw.from_addr,
-                        to: tx.raw.to_addr,
-                        value: tx.raw.value,
-                        status: TransactionStatus::Confirmed,
-                    });
-                }
-                current_hash = block.header.parent;
-            } else {
-                break;
-            }
-        }
-        
-        // Get state directly from blockchain
         let state = NodeState {
             id: node_id.to_string(),
             address: address.to_string(),
@@ -83,9 +62,9 @@ impl Visualizer {
             blocks_mined: blockchain.hash_to_origin.iter()
                 .filter(|(_, origin)| matches!(origin, crate::blockchain::BlockOrigin::Mined))
                 .count(),
-            mempool_size: 0, // Will be updated by the API server
-            accounts: blockchain.get_state_for_tip().map.clone(),
-            recent_transactions,
+            mempool_size: 0, // TODO: Get from mempool
+            accounts: HashMap::new(), // Temporary stub
+            recent_transactions: Vec::new(), // TODO: Track recent transactions
         };
         
         self.nodes.insert(node_id.to_string(), state);

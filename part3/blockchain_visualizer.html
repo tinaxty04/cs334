@@ -93,6 +93,16 @@
 			margin-right: 8px;
 			font-family: 'Campton', Arial, sans-serif;
 			transition: background-color 0.2s;
+<<<<<<< HEAD
+		}
+
+		button:hover {
+			background-color: #401f68;
+		}
+
+		#status {
+			margin-bottom: 16px;
+=======
 		}
 
 		button:hover {
@@ -103,12 +113,75 @@
 			margin-bottom: 16px;
 			font-weight: bold;
 		}
+
+		.mempool-tx {
+			padding: 4px 8px;
+			margin: 4px 0;
+			border-radius: 4px;
+			background: #fff;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
+		}
+		.mempool-tx.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
+		}
+		.tx-from, .tx-to {
+			font-family: monospace;
+		}
+		.tx-value {
+			float: right;
+			font-weight: bold;
+		}
+
+		.transaction {
+			padding: 4px 8px;
+			margin: 4px 0;
+			border-radius: 4px;
+			background: #fff;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
+		}
+		.transaction.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
+		}
+		.tx-hash {
+			font-family: monospace;
+			font-size: 12px;
+			color: #666;
+		}
+		.tx-details {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.tx-from, .tx-to {
+			font-family: monospace;
+		}
+		.tx-value {
+			margin-left: auto;
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
+			font-weight: bold;
+		}
 	</style>
 </head>
 
 <body>
 	<h1>Blockchain Visualizer</h1>
 	<div id="status">Connected to blockchain</div>
+<<<<<<< HEAD
+=======
+	<div id="accounts-panel" style="margin-bottom: 16px; background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 6px;">
+		<h3 style="margin-top:0;">Account Balances</h3>
+		<table id="accounts-table" style="width:100%; border-collapse:collapse;">
+			<thead>
+				<tr style="background:#f0f0f0;"><th style="text-align:left; padding:4px;">Address</th><th style="text-align:right; padding:4px;">Nonce</th><th style="text-align:right; padding:4px;">Balance</th></tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
 	<div class="controls">
 		<button id="showMoreBtn"><- Time</button>
 				<button id="showLessBtn">Time -></button>
@@ -120,6 +193,15 @@
 	<div id="blockchain-container"></div>
 	<div id="block-info"></div>
 
+<<<<<<< HEAD
+=======
+	<!-- Log panel -->
+	<div id="log-panel" style="margin-top:20px; background:#222; color:#fff; padding:10px; border-radius:6px; height:200px; overflow-y:auto; font-family:monospace; font-size:13px;"></div>
+
+	<!-- Mempool panel -->
+	<div id="mempool-panel" style="margin-top:20px; background:#fffbe6; color:#222; padding:10px; border-radius:6px; min-height:40px; font-family:monospace; font-size:14px;"></div>
+
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
 	<script>
         // Configuration
         const BLOCK_SIZE = 60;
@@ -136,6 +218,10 @@
         let tipHeight = 0; // Height of the tip
         let startHeight = 0; // Start height to display
         let visibleBlocks = []; // Currently visible blocks
+<<<<<<< HEAD
+=======
+        let pendingTransactions = new Set(); // Track pending transaction hashes
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
 
         // Calculated based on container width
         let blocksPerScreen = 0;
@@ -149,6 +235,10 @@
         const startHeightElement = document.getElementById('startHeight');
         const endHeightElement = document.getElementById('endHeight');
         const tipHeightElement = document.getElementById('tipHeight');
+<<<<<<< HEAD
+=======
+        const mempoolPanel = document.getElementById('mempool-panel');
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
 
         // Calculate how many blocks can fit on screen
         function calculateBlocksPerScreen() {
@@ -559,13 +649,51 @@
             selectedBlock = hash;
             blocks[hash].element.style.boxShadow = '0 0 10px 2px #ffc107';
 
+<<<<<<< HEAD
+=======
+            // Create transaction table HTML
+            let transactionsHtml = '';
+            if (block.transactions && block.transactions.length > 0) {
+                transactionsHtml = `
+                    <h4>Transactions (${block.transactions.length})</h4>
+                    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <thead>
+                            <tr style="background:#f0f0f0;">
+                                <th style="text-align:left; padding:4px;">From</th>
+                                <th style="text-align:left; padding:4px;">To</th>
+                                <th style="text-align:right; padding:4px;">Value</th>
+                                <th style="text-align:right; padding:4px;">Nonce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${block.transactions.map(tx => `
+                                <tr>
+                                    <td style="font-family:monospace; padding:4px;">${tx.from}</td>
+                                    <td style="font-family:monospace; padding:4px;">${tx.to}</td>
+                                    <td style="text-align:right; padding:4px;">${tx.value}</td>
+                                    <td style="text-align:right; padding:4px;">${tx.nonce}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                transactionsHtml = '<p>No transactions in this block</p>';
+            }
+
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
             blockInfoElement.innerHTML = `
                 <h3>Block Details</h3>
                 <p><strong>Hash:</strong> ${block.hash}</p>
                 <p><strong>Height:</strong> ${block.height}</p>
                 <p><strong>Parent:</strong> ${block.parent || 'Genesis Block'}</p>
                 <p><strong>Timestamp:</strong> ${new Date(parseInt(block.timestamp)).toLocaleString()}</p>
+<<<<<<< HEAD
                 <p><strong>Transactions:</strong> ${block.transactions}</p>
+=======
+                <p><strong>Miner:</strong> ${block.miner}</p>
+                ${transactionsHtml}
+>>>>>>> 0e233e3 (Add blockchain visualization with mempool and transaction tracking)
             `;
             blockInfoElement.style.display = 'block';
         }
@@ -581,6 +709,93 @@
 
         // Run initialization
         init();
+
+        // Fetch and update account balances
+        function fetchAccounts() {
+            fetch('/api/accounts')
+                .then(response => response.json())
+                .then(accounts => {
+                    const tbody = document.querySelector('#accounts-table tbody');
+                    tbody.innerHTML = '';
+                    accounts.forEach(acc => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td style='font-family:monospace; padding:4px;'>${acc.address}</td><td style='text-align:right; padding:4px;'>${acc.nonce}</td><td style='text-align:right; padding:4px;'>${acc.balance}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    const tbody = document.querySelector('#accounts-table tbody');
+                    tbody.innerHTML = `<tr><td colspan='3' style='color:red;'>Error loading accounts</td></tr>`;
+                });
+        }
+        // Poll accounts every 2 seconds
+        setInterval(fetchAccounts, 2000);
+        fetchAccounts();
+
+        // Log panel logic
+        function fetchLogs() {
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const logPanel = document.getElementById('log-panel');
+                    logPanel.innerHTML = logs.map(line => `<div>${line}</div>`).join('');
+                    logPanel.scrollTop = logPanel.scrollHeight;
+                })
+                .catch(err => {
+                    const logPanel = document.getElementById('log-panel');
+                    logPanel.innerHTML = '<div style="color:red;">Error loading logs</div>';
+                });
+        }
+        setInterval(fetchLogs, 2000);
+        fetchLogs();
+
+        // Mempool panel logic
+        function pollMempool() {
+            fetch('/api/mempool')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(transactions => {
+                    // Update pending transactions set
+                    pendingTransactions = new Set(transactions.map(tx => tx.hash));
+                    
+                    // Update mempool panel
+                    if (transactions.length > 0) {
+                        const html = transactions.map(tx => `
+                            <div class="mempool-tx" data-hash="${tx.hash}">
+                                <span class="tx-from">${tx.from.substring(0, 8)}...</span> →
+                                <span class="tx-to">${tx.to.substring(0, 8)}...</span>
+                                <span class="tx-value">${tx.value}</span>
+                            </div>
+                        `).join('');
+                        mempoolPanel.innerHTML = `<h4>Pending Transactions (${transactions.length})</h4>${html}`;
+                    } else {
+                        mempoolPanel.innerHTML = '<h4>No pending transactions</h4>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching mempool:', error);
+                })
+                .finally(() => {
+                    setTimeout(pollMempool, POLLING_INTERVAL);
+                });
+        }
+
+        // Start polling for mempool
+        pollMempool();
+
+        // Update transaction status in block details
+        function updateTransactionStatus(transactions) {
+            transactions.forEach(tx => {
+                const txElement = document.querySelector(`.mempool-tx[data-hash="${tx.hash}"]`);
+                if (txElement) {
+                    txElement.classList.add('confirmed');
+                }
+            });
+        }
 	</script>
 </body>
 

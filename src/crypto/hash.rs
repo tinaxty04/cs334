@@ -107,8 +107,6 @@ impl PartialOrd for H256 {
     }
 }
 
-<<<<<<< HEAD
-=======
 impl std::fmt::LowerHex for H256 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for byte in &self.0 {
@@ -118,7 +116,6 @@ impl std::fmt::LowerHex for H256 {
     }
 }
 
->>>>>>> b920444 (Initial commit for demo done)
 #[cfg(test)]
 pub mod tests {
     use super::H256;

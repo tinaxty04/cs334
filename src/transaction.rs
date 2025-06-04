@@ -1,21 +1,10 @@
-<<<<<<< HEAD
-use ring::signature::{Ed25519KeyPair, KeyPair};
-=======
 use ring::signature::{Ed25519KeyPair, Signature, KeyPair};
->>>>>>> b920444 (Initial commit for demo done)
 use serde::{Serialize, Deserialize};
 use bincode;
 use rand::random;
 use crate::crypto::hash::{H256, Hashable};
 use crate::crypto::address::H160;
-<<<<<<< HEAD
-use crate::mempool::Mempool;
-use std::collections::HashSet;
 
-// Account-based transaction 
-=======
-
->>>>>>> b920444 (Initial commit for demo done)
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct RawTransaction {
     pub from_addr: H160,
@@ -24,10 +13,6 @@ pub struct RawTransaction {
     pub nonce: u32,
 }
 
-<<<<<<< HEAD
-// A Signed transaction is a Raw transaction with a signature
-=======
->>>>>>> b920444 (Initial commit for demo done)
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SignedTransaction {
     pub raw: RawTransaction,
@@ -35,25 +20,12 @@ pub struct SignedTransaction {
     pub signature: Vec<u8>,
 }
 
-<<<<<<< HEAD
-
-impl SignedTransaction {
-    /// Create a new transaction from a raw transaction and a key pair
-    pub fn from_raw(raw: RawTransaction, key: &Ed25519KeyPair) -> SignedTransaction {
-        let pub_key = key.public_key().as_ref().to_vec();
-        let signature = sign(&raw, key);
-        SignedTransaction { raw, pub_key, signature }
-    }
-
-    /// Verify the signature of this transaction
-=======
 impl SignedTransaction {
     pub fn from_raw(raw: RawTransaction, key: &Ed25519KeyPair) -> SignedTransaction {
         let pub_key = key.public_key().as_ref().to_vec();
         let signature = sign(&raw, key).as_ref().to_vec();
         SignedTransaction { raw, pub_key, signature }
     }
->>>>>>> b920444 (Initial commit for demo done)
     pub fn verify_signature(&self) -> bool {
         let serialized_raw = bincode::serialize(&self.raw).unwrap();
         let public_key = ring::signature::UnparsedPublicKey::new(
@@ -62,35 +34,17 @@ impl SignedTransaction {
     }
 }
 
-/// Create digital signature of a transaction
-<<<<<<< HEAD
-pub fn sign(t: &RawTransaction, key: &Ed25519KeyPair) -> Vec<u8> {
-    let serialized = bincode::serialize(t).unwrap();
-    key.sign(&serialized).as_ref().to_vec()
-}
-
-/// Verify digital signature of a transaction, using public key instead of secret key
-pub fn verify(t: &RawTransaction, pub_key_bytes: &[u8], signature: &[u8]) -> bool {
-    let serialized = bincode::serialize(t).unwrap();
-    let public_key = ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, pub_key_bytes);
-    public_key.verify(&serialized, signature).is_ok()
-}
-
-=======
 pub fn sign(t: &RawTransaction, key: &Ed25519KeyPair) -> Signature {
     let serialized = bincode::serialize(t).unwrap();
     key.sign(&serialized)
 }
 
-/// Verify digital signature of a transaction, using public key instead of secret key
 pub fn verify(t: &RawTransaction, public_key: &<Ed25519KeyPair as KeyPair>::PublicKey, signature: &Signature) -> bool {
     let serialized = bincode::serialize(t).unwrap();
     let unparsed = ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key.as_ref());
     unparsed.verify(&serialized, signature.as_ref()).is_ok()
 }
 
-/* Please add the following code snippet into `src/transaction.rs`: */
->>>>>>> b920444 (Initial commit for demo done)
 impl Hashable for RawTransaction {
     fn hash(&self) -> H256 {
         let bytes = bincode::serialize(&self).unwrap();
@@ -100,11 +54,7 @@ impl Hashable for RawTransaction {
 
 impl Hashable for SignedTransaction {
     fn hash(&self) -> H256 {
-<<<<<<< HEAD
-        let bytes = bincode::serialize(&self).unwrap();
-=======
         let bytes = bincode::serialize(self).unwrap();
->>>>>>> b920444 (Initial commit for demo done)
         ring::digest::digest(&ring::digest::SHA256, &bytes).into()
     }
 }
@@ -113,15 +63,8 @@ impl Hashable for SignedTransaction {
 mod tests {
     use super::*;
     use crate::crypto::key_pair;
-<<<<<<< HEAD
-    use crate::mempool::Mempool;
     use std::collections::HashSet;
 
-    /*
-    // Old UTXO-based test code (commented out)
-=======
-
->>>>>>> b920444 (Initial commit for demo done)
     pub fn generate_random_transaction() -> RawTransaction {
         // Create a simple transaction with just one input and one output
         let input = Input {
@@ -145,8 +88,6 @@ mod tests {
         let signature = sign(&t, &key);
         assert!(verify(&t, &(key.public_key()), &signature));
     }
-<<<<<<< HEAD
-    */
 
     // New account-based tests
     #[test]
@@ -249,7 +190,5 @@ mod tests {
             assert!(addrs.insert(addr));
         }
     }
-=======
->>>>>>> b920444 (Initial commit for demo done)
 }
 

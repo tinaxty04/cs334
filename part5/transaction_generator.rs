@@ -43,8 +43,7 @@ impl TransactionGenerator {
 
     /// Generate random transactions and send them to the server
     fn generation_loop(&self) {
-        const INTERVAL_MILLISECONDS: u64 = 500; // how quickly to generate transactions (faster)
-        const MAX_RETRIES: u32 = 3; // maximum number of retries for transaction generation
+        const INTERVAL_MILLISECONDS: u64 = 3000; // how quickly to generate transactions
 
         // Use the same deterministic keypairs as the ICO
         let keypairs: Vec<Ed25519KeyPair> = (0u8..3).map(|i| crate::blockchain::get_deterministic_keypair(i)).collect();
@@ -55,72 +54,58 @@ impl TransactionGenerator {
             let interval = time::Duration::from_millis(INTERVAL_MILLISECONDS);
             thread::sleep(interval);
 
-                // Get current state
-                let state = {
-                    let blockchain = self.blockchain.lock().unwrap();
-                    blockchain.get_state_for_tip().clone()
-                };
+            // Cycle through all accounts
+            let sender_kp = &keypairs[sender_index];
+            let sender_addr = addresses[sender_index];
+            sender_index = (sender_index + 1) % keypairs.len();
 
-            // Get sender and receiver addresses
-            let from_addr = addresses[sender_index];
-            let to_addr = addresses[(sender_index + 1) % addresses.len()];
-            
-            // Get current nonce and balance
-            let (current_nonce, balance) = state.get(&from_addr).unwrap_or((0, 0));
-            
-            // Generate transaction with current nonce
-            let value = 10; // Fixed value for simplicity
-                let raw_tx = crate::transaction::RawTransaction {
-                from_addr,
-                to_addr,
-                    value,
-                nonce: current_nonce + 1,
-                };
-            
-            let tx = crate::transaction::SignedTransaction::from_raw(raw_tx, &self.controlled_keypair);
-            
-            // Try to add to mempool with retries
-            let mut retries = 0;
-            let mut success = false;
-            
-            while retries < MAX_RETRIES && !success {
-                // Check state again right before adding to mempool
-                let current_state = {
-                    let blockchain = self.blockchain.lock().unwrap();
-                    blockchain.get_state_for_tip().clone()
-                };
-                
-                let (latest_nonce, _) = current_state.get(&from_addr).unwrap_or((0, 0));
-                
-                if latest_nonce == current_nonce {
-                    // State hasn't changed, safe to add transaction
-                    let mut mempool = self.mempool.lock().unwrap();
-                    success = mempool.add(tx.clone());
-                    if success {
-                        info!("[TxGen] Successfully generated tx: from={} to={} value={} nonce={}", 
-                            from_addr, to_addr, value, current_nonce + 1);
-                    }
-                } else {
-                    // State has changed, update nonce and retry
-                    info!("[TxGen] State changed during generation, retrying with new nonce: old={} new={}", 
-                        current_nonce, latest_nonce);
-                    let raw_tx = crate::transaction::RawTransaction {
-                        from_addr,
-                        to_addr,
-                        value,
-                        nonce: latest_nonce + 1,
-                    };
-                    let tx = crate::transaction::SignedTransaction::from_raw(raw_tx, &self.controlled_keypair);
-                    retries += 1;
-                }
-            }
-            
-            if !success {
-                warn!("[TxGen] Failed to generate transaction after {} retries", MAX_RETRIES);
+            // Get current state
+            let state = {
+                let blockchain = self.blockchain.lock().unwrap();
+                blockchain.get_state_for_tip().clone()
+            };
+
+            // Get sender's nonce and balance
+            let (nonce, balance) = match state.get(&sender_addr) {
+                Some((n, b)) => (n, b),
+                None => continue, // skip if not found
+            };
+            if balance == 0 {
+                continue; // skip if no balance
             }
 
-            // Move to next sender
-            sender_index = (sender_index + 1) % addresses.len();
+            // Pick a random recipient (not self)
+            let mut recipient_indices: Vec<usize> = (0..keypairs.len()).filter(|&i| i != sender_index).collect();
+            if recipient_indices.is_empty() {
+                continue;
+            }
+            let mut rng = thread_rng();
+            let &recipient_index = recipient_indices.choose(&mut rng).unwrap();
+            let recipient_addr = addresses[recipient_index];
+
+            // Pick a value to send (1..=balance)
+            let value = if balance > 1 { rng.gen_range(1..=balance) } else { 1 };
+
+            // Create transaction
+            let raw_tx = crate::transaction::RawTransaction {
+                from_addr: sender_addr,
+                to_addr: recipient_addr,
+                value,
+                nonce: nonce + 1,
+            };
+            let signed_tx = crate::transaction::SignedTransaction::from_raw(raw_tx, sender_kp);
+            let tx_hash = signed_tx.hash();
+
+            // Add to mempool
+            {
+                let mut mempool = self.mempool.lock().unwrap();
+                mempool.add_transaction(signed_tx.clone());
+            }
+
+            // Broadcast
+            self.server.broadcast(Message::NewTransactionHashes(vec![tx_hash]));
+
+            log::info!("[TxGen] Generated tx from {} to {} value {} nonce {}", sender_addr, recipient_addr, value, nonce + 1);
         }
     }
 }

@@ -1,9 +1,5 @@
 use serde::{Serialize,Deserialize};
 use ring::signature::Ed25519KeyPair;
-<<<<<<< HEAD
-use ring::signature::KeyPair;
-=======
->>>>>>> b920444 (Initial commit for demo done)
 
 /// A 160-bit public address.
 #[derive(Eq, PartialEq, Serialize, Deserialize, Clone, Hash, Default, Copy)]
@@ -37,8 +33,6 @@ impl std::fmt::Debug for H160 {
     }
 }
 
-<<<<<<< HEAD
-=======
 impl std::fmt::LowerHex for H160 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for byte in &self.0 {
@@ -48,7 +42,6 @@ impl std::fmt::LowerHex for H160 {
     }
 }
 
->>>>>>> b920444 (Initial commit for demo done)
 impl H160 {
     /// Create a new address from a public key.
     pub fn from_pubkey(pub_key_as_bytes: &[u8]) -> Self {
@@ -74,18 +67,11 @@ impl std::convert::From<[u8; 20]> for H160 {
     }
 }
 
-<<<<<<< HEAD
-=======
 // for Initial coin offering:
->>>>>>> b920444 (Initial commit for demo done)
 /// Get a deterministic keypair from a nonce:
 pub fn get_deterministic_keypair(nonce: u8) -> Ed25519KeyPair {
     let mut seed = [0u8; 32];
     seed[0] = nonce;
     let keypair = Ed25519KeyPair::from_seed_unchecked(&seed).unwrap();
     keypair
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b920444 (Initial commit for demo done)

@@ -4,925 +4,768 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Blockchain Network Visualizer</title>
+	<title>Blockchain Visualizer</title>
 	<style>
-		:root {
-			--primary-color: #2196F3;
-			--success-color: #4CAF50;
-			--warning-color: #FFC107;
-			--error-color: #F44336;
-			--text-color: #333;
-			--bg-color: #f5f5f5;
-			--card-bg: #ffffff;
-			--border-color: #e0e0e0;
-			--mining-color: #9C27B0;
-		}
-
 		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			font-family: Arial, sans-serif;
 			margin: 0;
 			padding: 20px;
-			background-color: var(--bg-color);
-			color: var(--text-color);
+			background-color: #f5f5f5;
 		}
 
-		.container {
-			display: grid;
-			grid-template-columns: repeat(5, 1fr);
-			gap: 20px;
-			max-width: 2200px;
-			margin: 0 auto;
-		}
-
-		/* Set a fixed height for all top row panels */
-		.node-card, .shared-mempool-panel, .accounts-panel {
-			height: 480px;
-			min-height: 480px;
-			max-height: 480px;
-			display: flex;
-			flex-direction: column;
-		}
-
-		/* Increase the shared mempool section height */
-		.shared-mempool-section {
-			min-height: 40px;
-			height: 340px;
-			max-height: 340px;
-			overflow-y: auto;
-		}
-
-		.accounts-panel {
-			position: static;
-			background: var(--card-bg);
-			padding: 15px;
-			border-radius: 8px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			max-width: 400px;
-			min-width: 250px;
-			min-height: 480px;
-			margin: 0;
-		}
-
-		#consensus-row {
-			grid-column: 1 / span 5;
-			margin-top: 20px;
-		}
-
-		.node-card {
-			background: var(--card-bg);
-			border-radius: 8px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			padding: 15px;
-			display: flex;
-			flex-direction: column;
-			gap: 15px;
-		}
-
-		.node-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding-bottom: 10px;
-			border-bottom: 2px solid var(--border-color);
-		}
-
-		.node-title {
-			font-size: 1.2em;
-			font-weight: bold;
-			color: var(--primary-color);
-		}
-
-		.node-status {
-			padding: 4px 8px;
-			border-radius: 4px;
-			font-size: 0.9em;
-			background-color: var(--success-color);
-			color: white;
-		}
-
-		.node-status.mining {
-			background-color: var(--mining-color);
-			animation: pulse 2s infinite;
-		}
-
-		.blockchain-section {
-			flex: 1;
-			min-height: 200px;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 10px;
-			overflow-y: auto;
-		}
-
-		.mempool-section {
-			height: 200px;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 10px;
-			overflow-y: auto;
+		#blockchain-container {
+			width: 100%;
+			height: 600px;
+			background-color: white;
+			border: 1px solid #ddd;
+			position: relative;
+			overflow: hidden;
 		}
 
 		.block {
-			display: inline-block;
-			padding: 8px 12px;
-			margin: 4px;
-			background-color: var(--primary-color);
+			position: absolute;
+			width: 60px;
+			height: 60px;
+			background-color: #4CAF50;
 			color: white;
-			border-radius: 4px;
-			font-size: 0.9em;
+			text-align: center;
+			line-height: 60px;
+			border-radius: 5px;
 			cursor: pointer;
+			user-select: none;
 			transition: all 0.3s ease;
-			position: relative;
-		}
-
-		.block:hover {
-			transform: scale(1.05);
 		}
 
 		.block.genesis {
-			background-color: var(--success-color);
+			background-color: #2196F3;
 		}
 
-		.block-details {
-			position: absolute;
-			top: 100%;
-			left: 0;
-			background: white;
-			border: 1px solid var(--border-color);
-			border-radius: 4px;
-			padding: 12px 16px 12px 16px;
-			min-width: 340px;
-			max-width: 440px;
-			max-height: 340px;
-			box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 1.5px 6px rgba(0,0,0,0.08);
-			z-index: 9999;
+		.block.longest-chain {
+			background-color: #836EAA;
+		}
+
+		#block-info {
+			margin-top: 20px;
+			padding: 10px;
+			border: 1px solid #ddd;
+			background-color: white;
 			display: none;
-			overflow-y: auto;
-			flex-direction: column;
-			justify-content: flex-start;
 		}
 
-		.block:hover .block-details {
+		.arrow {
+			position: absolute;
+			background-color: #555;
+			height: 2px;
+			z-index: 1;
+			transition: all 0.3s ease;
+		}
+
+		.arrow:after {
+			content: '';
+			position: absolute;
+			right: 0;
+			top: -4px;
+			width: 0;
+			height: 0;
+			border-top: 5px solid transparent;
+			border-bottom: 5px solid transparent;
+			border-left: 8px solid #555;
+		}
+
+		.controls {
+			margin-bottom: 10px;
 			display: flex;
+			align-items: center;
 		}
 
-		.block-details .tx-list {
-			margin-top: 0;
-			border-top: 1px solid #e0e0e0;
-			padding-top: 8px;
-			max-height: 180px;
-			overflow-y: auto;
-			flex: 1 1 auto;
-			display: flex;
-			flex-direction: column;
-			justify-content: flex-start;
+		.chain-info {
+			margin-left: 20px;
+			font-weight: bold;
 		}
 
-		.block-details .tx-item {
-			background: #f5faff;
+		button {
+			background-color: #4e2a84;
+			color: white;
+			border: none;
+			padding: 8px 16px;
 			border-radius: 4px;
-			margin-bottom: 6px;
-			padding: 7px 10px;
+			cursor: pointer;
+			margin-right: 8px;
+			font-family: 'Campton', Arial, sans-serif;
+			transition: background-color 0.2s;
+		}
+
+		button:hover {
+			background-color: #401f68;
+		}
+
+		#status {
+			margin-bottom: 16px;
+			font-weight: bold;
+		}
+
+		.mempool-tx {
+			padding: 4px 8px;
+			margin: 4px 0;
+			border-radius: 4px;
+			background: #fff;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
+		}
+		.mempool-tx.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
+		}
+		.tx-from, .tx-to {
 			font-family: monospace;
-			font-size: 0.97em;
-			color: #1976d2;
-			border-left: 3px solid #2196F3;
-			box-shadow: 0 1px 2px rgba(33,150,243,0.04);
 		}
-
-		.block-details .tx-item:last-child {
-			margin-bottom: 0;
-		}
-
-		.block-details .tx-more {
-			color: #888;
-			font-size: 0.95em;
-			margin-top: 6px;
-			font-style: italic;
+		.tx-value {
+			float: right;
+			font-weight: bold;
 		}
 
 		.transaction {
-			padding: 8px;
+			padding: 4px 8px;
 			margin: 4px 0;
-			background-color: #f8f9fa;
-			border-left: 3px solid var(--primary-color);
 			border-radius: 4px;
-			font-size: 0.9em;
-			position: relative;
-		}
-
-		.transaction.new {
-			border-left-color: var(--success-color);
-			animation: highlight 2s ease-out;
-		}
-
-		.transaction.removed {
-			border-left-color: var(--error-color);
-			opacity: 0.5;
-			animation: slideOut 1s forwards;
-		}
-
-		.transaction.rejected {
-			border-left-color: var(--error-color);
-			background: #ffebee;
-			animation: rejectShake 0.5s ease-in-out;
-		}
-
-		.transaction-flow {
-			position: absolute;
-			background-color: rgba(33, 150, 243, 0.1);
-			height: 2px;
-			z-index: 1;
-			pointer-events: none;
-		}
-
-		.accounts-table {
-			width: 100%;
-			border-collapse: collapse;
-		}
-
-		.accounts-table th,
-		.accounts-table td {
-			padding: 8px;
-			text-align: left;
-			border-bottom: 1px solid var(--border-color);
-		}
-
-		.accounts-table th {
-			background-color: #f8f9fa;
-		}
-
-		.account-details {
-			font-size: 0.9em;
-			color: #666;
-			margin-top: 4px;
-		}
-
-		.mining-status {
-			margin-top: 10px;
-			padding: 8px;
-			background-color: #f8f9fa;
-			border-radius: 4px;
-			font-size: 0.9em;
-		}
-
-		.mining-status.active {
-			background-color: rgba(156, 39, 176, 0.1);
-			border-left: 3px solid var(--mining-color);
-		}
-
-		.notification {
-			position: fixed;
-			top: 20px;
-			right: 20px;
-			padding: 10px 20px;
-			background-color: var(--primary-color);
-			color: white;
-			border-radius: 4px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			z-index: 1000;
-			animation: slideIn 0.3s ease-out;
-		}
-
-		@keyframes slideIn {
-			from { transform: translateX(100%); }
-			to { transform: translateX(0); }
-		}
-
-		@keyframes highlight {
-			0% { background-color: rgba(76, 175, 80, 0.2); }
-			100% { background-color: transparent; }
-		}
-
-		@keyframes pulse {
-			0% { opacity: 1; }
-			50% { opacity: 0.7; }
-			100% { opacity: 1; }
-		}
-
-		@keyframes rejectShake {
-			0%, 100% { transform: translateX(0); }
-			10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-			20%, 40%, 60%, 80% { transform: translateX(5px); }
-		}
-
-		.rejection-badge {
-			background: var(--error-color);
-			color: white;
-			padding: 2px 6px;
-			border-radius: 4px;
-			font-size: 0.8em;
-			margin-left: 8px;
-			animation: fadeIn 0.3s ease-in;
-		}
-
-		@keyframes fadeIn {
-			from { opacity: 0; }
-			to { opacity: 1; }
-		}
-
-		.communication-line {
-			position: absolute;
-			background-color: rgba(33, 150, 243, 0.2);
-			height: 2px;
-			z-index: -1;
-		}
-
-		.node-info {
-			display: flex;
-			justify-content: space-between;
-			font-size: 0.9em;
-			color: #666;
-		}
-
-		.section-title {
-			font-weight: bold;
-			margin-bottom: 8px;
-			color: var(--primary-color);
-		}
-
-		.transaction-details {
-			font-family: monospace;
-			font-size: 0.8em;
-			color: #666;
-			margin-top: 4px;
-		}
-
-		.shared-mempool-panel {
-			background: var(--card-bg);
-			border-radius: 8px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			padding: 15px;
-			min-width: 250px;
-			min-height: 250px;
-			max-width: 400px;
-			margin: 0;
-		}
-
-		.block-large {
-			min-width: 80px;
-			min-height: 60px;
-			font-size: 1.1em;
-			margin: 8px;
-			position: relative;
-		}
-
-		.block-tx-list {
-			position: absolute;
-			left: 0;
-			top: 100%;
 			background: #fff;
-			border: 1px solid #e0e0e0;
-			border-radius: 4px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-			padding: 6px;
-			min-width: 180px;
-			z-index: 10;
-			display: none;
+			border: 1px solid #ddd;
+			transition: all 0.3s ease;
 		}
-
-		.block-large:hover .block-tx-list {
-			display: block;
+		.transaction.confirmed {
+			background: #e8f5e9;
+			border-color: #4caf50;
 		}
-
-		.block-tx {
+		.tx-hash {
 			font-family: monospace;
-			font-size: 0.9em;
-			color: #1976d2;
-			margin-bottom: 2px;
+			font-size: 12px;
+			color: #666;
 		}
-
-		.animated-arrow {
-			position: absolute;
-			width: 60px;
-			height: 4px;
-			background: linear-gradient(90deg, #2196F3 60%, transparent 100%);
-			border-radius: 2px;
-			z-index: 100;
-			animation: arrowMove 1s linear forwards;
+		.tx-details {
+			display: flex;
+			align-items: center;
+			gap: 8px;
 		}
-
-		@keyframes arrowMove {
-			0% { opacity: 1; transform: translateX(0); }
-			100% { opacity: 0; transform: translateX(80px); }
+		.tx-from, .tx-to {
+			font-family: monospace;
+		}
+		.tx-value {
+			margin-left: auto;
+			font-weight: bold;
 		}
 	</style>
 </head>
 
 <body>
-	<div id="global-tx-notifications" style="position:fixed;top:0;left:0;width:100%;z-index:2000;text-align:center;"></div>
-	<div class="container">
-		<div id="node1" class="node-card">
-			<div class="node-header">
-				<div class="node-title">Node 1</div>
-				<div class="node-status">Connected</div>
-			</div>
-			<div class="node-notifications"></div>
-			<div class="mined-blocks-section" style="flex:1;min-height:80px;max-height:180px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:6px;margin-top:4px;"></div>
-		</div>
-		<div id="node2" class="node-card">
-			<div class="node-header">
-				<div class="node-title">Node 2</div>
-				<div class="node-status">Connected</div>
-			</div>
-			<div class="node-notifications"></div>
-			<div class="mined-blocks-section" style="flex:1;min-height:80px;max-height:180px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:6px;margin-top:4px;"></div>
-		</div>
-		<div id="node3" class="node-card">
-			<div class="node-header">
-				<div class="node-title">Node 3</div>
-				<div class="node-status">Connected</div>
-			</div>
-			<div class="node-notifications"></div>
-			<div class="mined-blocks-section" style="flex:1;min-height:80px;max-height:180px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:6px;margin-top:4px;"></div>
-		</div>
-		<div class="shared-mempool-panel">
-			<div class="section-title">Mempool (pending transactions: 0)</div>
-			<div class="shared-mempool-section"></div>
-		</div>
-		<div class="accounts-panel">
-			<h3>Account Balances</h3>
-			<table class="accounts-table">
+	<h1>Blockchain Visualizer</h1>
+	<div id="status">Connected to blockchain</div>
+	<div id="accounts-panel" style="margin-bottom: 16px; background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 6px;">
+		<h3 style="margin-top:0;">Account Balances</h3>
+		<table id="accounts-table" style="width:100%; border-collapse:collapse;">
 			<thead>
-					<tr>
-						<th>Address</th>
-						<th>Balance</th>
-					</tr>
+				<tr style="background:#f0f0f0;"><th style="text-align:left; padding:4px;">Address</th><th style="text-align:right; padding:4px;">Nonce</th><th style="text-align:right; padding:4px;">Balance</th></tr>
 			</thead>
 			<tbody></tbody>
 		</table>
 	</div>
-	</div>
-	<div id="consensus-row">
-		<div id="consensus-chain" class="node-card" style="background:#f0f4c3;min-width:350px;">
-			<div class="node-header">
-				<div class="node-title" style="color:#689f38;">Consensus Chain</div>
-				<div id="consensus-block-count" class="node-status" style="background:#689f38;">Blocks: 0</div>
-			</div>
-			<div class="section-title">Public Blockchain</div>
-			<div class="blockchain-section" id="consensus-blockchain-section"></div>
+	<div class="controls">
+		<button id="showMoreBtn"><- Time</button>
+				<button id="showLessBtn">Time -></button>
+				<div class="chain-info">
+					Showing blocks from height <span id="startHeight">0</span> to <span id="endHeight">0</span> (Tip
+					height: <span id="tipHeight">0</span>)
 				</div>
 	</div>
+	<div id="blockchain-container"></div>
+	<div id="block-info"></div>
+
+	<!-- Log panel -->
+	<div id="log-panel" style="margin-top:20px; background:#222; color:#fff; padding:10px; border-radius:6px; height:200px; overflow-y:auto; font-family:monospace; font-size:13px;"></div>
+
+	<!-- Mempool panel -->
+	<div id="mempool-panel" style="margin-top:20px; background:#fffbe6; color:#222; padding:10px; border-radius:6px; min-height:40px; font-family:monospace; font-size:14px;"></div>
+
 	<script>
-		const NODES = ['node1', 'node2', 'node3'];
-		const POLLING_INTERVAL = 2000;
-		let nodes = {};
-		let lastMempool = [];
-		let lastBlocks = { node1: [], node2: [], node3: [] };
-		let publicChain = [];
-		let lastBlockTime = Date.now();
-		let processedBlocks = new Set(); // Track processed blocks to avoid duplicates
+        // Configuration
+        const BLOCK_SIZE = 60;
+        const HORIZONTAL_SPACING = 120;
+        const VERTICAL_SPACING = 80;
+        const POLLING_INTERVAL = 2000; // Poll every 2 seconds
 
-		NODES.forEach(nodeId => {
-			nodes[nodeId] = {
-				blocks: {},
-				heightToBlocks: {},
-				longestChainBlocks: [],
-				currentTip: null,
-				tipHeight: 0,
-				mempool: new Set(),
-				isMining: false
-			};
-		});
+        // State
+        let blocks = {};
+        let heightToBlocks = {};
+        let selectedBlock = null;
+        let longestChainBlocks = []; // Keep track of blocks in the longest chain
+        let currentTip = null; // Current tip hash
+        let tipHeight = 0; // Height of the tip
+        let startHeight = 0; // Start height to display
+        let visibleBlocks = []; // Currently visible blocks
+        let pendingTransactions = new Set(); // Track pending transaction hashes
 
-		function showNotification(message, type = 'info') {
-			const notification = document.createElement('div');
-			notification.className = `notification ${type}`;
-			notification.textContent = message;
-			document.body.appendChild(notification);
-			setTimeout(() => notification.remove(), 3000);
-		}
+        // Calculated based on container width
+        let blocksPerScreen = 0;
 
-		function showGlobalTxNotification(message) {
-			const notif = document.createElement('div');
-			notif.className = 'notification';
-			notif.style.display = 'inline-block';
-			notif.style.background = '#fffde7';
-			notif.style.color = '#1976d2';
-			notif.textContent = message;
-			document.getElementById('global-tx-notifications').appendChild(notif);
-			setTimeout(() => notif.remove(), 3500);
-		}
+        // DOM Elements
+        const container = document.getElementById('blockchain-container');
+        const statusElement = document.getElementById('status');
+        const blockInfoElement = document.getElementById('block-info');
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        const showLessBtn = document.getElementById('showLessBtn');
+        const startHeightElement = document.getElementById('startHeight');
+        const endHeightElement = document.getElementById('endHeight');
+        const tipHeightElement = document.getElementById('tipHeight');
+        const mempoolPanel = document.getElementById('mempool-panel');
 
-		function showTxNotificationGlobal(tx, type) {
-			const fromAddr = tx.from_addr || tx.from ? (tx.from_addr || tx.from).substring(0,8) : 'Unknown';
-			const toAddr = tx.to_addr || tx.to ? (tx.to_addr || tx.to).substring(0,8) : 'Unknown';
-			const value = tx.value !== undefined ? tx.value : '?';
-			if (type === 'sent') {
-				showGlobalTxNotification(`${fromAddr}... requests to send ${value} to ${toAddr}...`);
-			} else {
-				showGlobalTxNotification(`${toAddr}... will receive ${value} from ${fromAddr}...`);
-			}
-		}
+        // Calculate how many blocks can fit on screen
+        function calculateBlocksPerScreen() {
+            const containerWidth = container.clientWidth;
+            return Math.floor((containerWidth - 40) / HORIZONTAL_SPACING);
+        }
 
-		function animateArrowFromMempoolToBlock(txHash, blockElement) {
-			const mempoolTx = document.querySelector(`.shared-mempool-section [data-hash='${txHash}']`);
-			if (!mempoolTx || !blockElement) return;
-			const mempoolRect = mempoolTx.getBoundingClientRect();
-			const blockRect = blockElement.getBoundingClientRect();
-			const containerRect = document.body.getBoundingClientRect();
-			const arrow = document.createElement('div');
-			arrow.className = 'animated-arrow';
-			arrow.style.left = (mempoolRect.right - containerRect.left + 10) + 'px';
-			arrow.style.top = (mempoolRect.top - containerRect.top + mempoolRect.height/2 - 2) + 'px';
-			document.body.appendChild(arrow);
-			setTimeout(() => arrow.remove(), 1000);
-		}
+        // Initialize event listeners
+        showMoreBtn.addEventListener('click', () => {
+            if (startHeight > 0) {
+                startHeight = Math.max(0, startHeight - 1);
+                fetchVisibleBlocks();
+            }
+        });
 
-		function updateNodeVisualization(nodeId, blocksData) {
-			const node = nodes[nodeId];
-			const notifications = document.querySelector(`#${nodeId} .node-notifications`);
-			notifications.innerHTML = '';
-			
-			// Show blocks mined by this node
-			const minerName = nodeId === 'node1' ? 'account0' : nodeId === 'node2' ? 'account1' : 'account2';
-			const minedBlocks = blocksData.filter(block => block.miner === minerName);
-			
-			// Update mined blocks history section
-			const minedBlocksSection = document.querySelector(`#${nodeId} .mined-blocks-section`);
-			if (minedBlocksSection) {
-				minedBlocksSection.innerHTML = '';
-				minedBlocks.sort((a, b) => a.height - b.height).forEach(block => {
-					const blockElement = document.createElement('div');
-					blockElement.className = `block block-large ${block.height === 0 ? 'genesis' : ''}`;
-					blockElement.textContent = `#${block.height}`;
-					const details = document.createElement('div');
-					details.className = 'block-details';
-					details.innerHTML = `
-						<div><strong>Hash:</strong> ${block.hash.substring(0, 16)}...</div>
-						<div><strong>Parent:</strong> ${block.parent.substring(0, 16)}...</div>
-						<div><strong>Miner:</strong> ${block.miner}</div>
-						<div><strong>Transactions:</strong> ${block.transactions ? block.transactions.length : 0}</div>
-						<div><strong>Timestamp:</strong> ${new Date(block.timestamp).toLocaleString()}</div>
-					`;
-					blockElement.appendChild(details);
-					minedBlocksSection.appendChild(blockElement);
-				});
-			}
+        showLessBtn.addEventListener('click', () => {
+            if (startHeight < tipHeight - blocksPerScreen + 1) {
+                startHeight++;
+                fetchVisibleBlocks();
+            }
+        });
 
-			if (minedBlocks.length > 0) {
-				minedBlocks.forEach(block => {
-					// Only process new blocks
-					if (!processedBlocks.has(block.hash)) {
-						processedBlocks.add(block.hash);
-						
-						// Show consistent notification
-						const notif = document.createElement('div');
-						notif.className = 'notification';
-						notif.style.position = 'static';
-						notif.style.marginBottom = '6px';
-						notif.style.background = '#e8f5e9';
-						notif.style.color = '#388e3c';
-						notif.textContent = `Mined Block #${block.height} (hash: ${block.hash.substring(0,8)}...)`;
-						notifications.appendChild(notif);
-						
-						// Add to public chain with random delay
-						const delay = Math.random() * 4000 + 1000; // Random delay between 1-5 seconds
-						setTimeout(() => {
-							// Ensure block is added in order
-							const insertIndex = publicChain.findIndex(b => b.height > block.height);
-							if (insertIndex === -1) {
-								publicChain.push(block);
-							} else {
-								publicChain.splice(insertIndex, 0, block);
-							}
-							updateConsensusChain(publicChain);
-						}, delay);
-					}
-				});
-			} else {
-				const notif = document.createElement('div');
-				notif.className = 'notification';
-				notif.style.position = 'static';
-				notif.style.marginBottom = '6px';
-				notif.style.background = '#fffde7';
-				notif.style.color = '#fbc02d';
-				notif.textContent = 'No blocks mined yet.';
-				notifications.appendChild(notif);
-			}
-		}
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            blocksPerScreen = calculateBlocksPerScreen();
+            // Adjust startHeight to ensure the tip is always visible
+            if (tipHeight - startHeight >= blocksPerScreen) {
+                startHeight = Math.max(0, tipHeight - blocksPerScreen + 1);
+            }
+            fetchVisibleBlocks();
+        });
 
-		function updateMempool(nodeId, transactions) {
-			console.log(`[DEBUG] updateMempool for ${nodeId} received:`, transactions);
-			const node = nodes[nodeId];
-			const container = document.querySelector(`#${nodeId} .mempool-section`);
-			
-			const newMempool = new Set(transactions.map(tx => tx.hash));
-			
-			node.mempool.forEach(hash => {
-				if (!newMempool.has(hash)) {
-					const txElement = container.querySelector(`[data-hash="${hash}"]`);
-					if (txElement) {
-						txElement.classList.add('removed');
-						setTimeout(() => txElement.remove(), 1000);
-						showNotification(`Transaction removed from ${nodeId} mempool: ${hash.substring(0, 8)}...`);
-					}
-				}
-			});
+        // Fetch only the visible blocks
+        function fetchVisibleBlocks() {
+            statusElement.textContent = 'Fetching blockchain data...';
+            statusElement.style.color = 'blue';
 
-			transactions.forEach(tx => {
-				if (!node.mempool.has(tx.hash)) {
-					const txElement = document.createElement('div');
-					txElement.className = 'transaction new';
-					txElement.setAttribute('data-hash', tx.hash);
-					
-					const fromAddr = tx.from_addr ? tx.from_addr.substring(0, 8) + '...' : 'Unknown';
-					const toAddr = tx.to_addr ? tx.to_addr.substring(0, 8) + '...' : 'Unknown';
-					
-					txElement.innerHTML = `
-						<div>From: ${fromAddr} → To: ${toAddr}</div>
-						<div>Value: ${tx.value} | Nonce: ${tx.nonce}</div>
-						<div class="transaction-details">
-							Hash: ${tx.hash.substring(0, 16)}...
-						</div>
-					`;
-					
-					container.appendChild(txElement);
-					showNotification(`New transaction on ${nodeId}: ${tx.value} from ${fromAddr}`);
-				}
-			});
+            // Calculate end height
+            const endHeight = Math.min(tipHeight, startHeight + blocksPerScreen - 1);
 
-			node.mempool = newMempool;
-		}
+            // Update UI
+            startHeightElement.textContent = startHeight;
+            endHeightElement.textContent = endHeight;
+            tipHeightElement.textContent = tipHeight;
 
-		function updateAccounts(accounts) {
-			const tbody = document.querySelector('.accounts-table tbody');
-			tbody.innerHTML = '';
-			// Sort accounts by balance descending
-			accounts.sort((a, b) => b.balance - a.balance);
-			accounts.forEach(acc => {
-				const tr = document.createElement('tr');
-				tr.innerHTML = `
-					<td>${acc.address.substring(0, 8)}...</td>
-					<td>${acc.balance}</td>
-				`;
-				tbody.appendChild(tr);
-			});
-		}
+            fetch(`/api/blocks?start=${startHeight}&end=${endHeight}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    statusElement.textContent = 'Connected to blockchain';
+                    statusElement.style.color = 'green';
 
-		function updateMiningStatus(nodeId, isMining, difficulty) {
-			const node = nodes[nodeId];
-			const statusElement = document.querySelector(`#${nodeId} .node-status`);
-			const miningState = document.querySelector(`#${nodeId} .mining-state`);
-			const miningDifficulty = document.querySelector(`#${nodeId} .mining-difficulty`);
-			const miningStatus = document.querySelector(`#${nodeId} .mining-status`);
+                    if (data && Array.isArray(data)) {
+                        updateVisualization(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching blocks:', error);
+                    statusElement.textContent = 'Error connecting to blockchain. Retrying...';
+                    statusElement.style.color = 'red';
+                });
+        }
 
-			if (isMining !== node.isMining) {
-				node.isMining = isMining;
-				if (isMining) {
-					statusElement.classList.add('mining');
-					miningStatus.classList.add('active');
-					showNotification(`Node ${nodeId} started mining`);
+        // Get the current tip height
+        function pollForTipHeight() {
+            fetch('/api/tip')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.height !== undefined) {
+                        const newTipHeight = parseInt(data.height);
+
+                        // If tip has increased, adjust view to show new blocks
+                        if (newTipHeight > tipHeight) {
+                            // Auto-adjust startHeight to keep showing the latest blocks
+                            if (newTipHeight - startHeight >= blocksPerScreen) {
+                                startHeight = newTipHeight - blocksPerScreen + 1;
+                            }
+                            tipHeight = newTipHeight;
+                            fetchVisibleBlocks();
+                        } else if (newTipHeight !== tipHeight) {
+                            // Just update the tip height if it changed (could be a reorg)
+                            tipHeight = newTipHeight;
+                            fetchVisibleBlocks();
+                        }
+
+                        tipHeightElement.textContent = tipHeight;
+                    }
+
+                    // Schedule next poll
+                    setTimeout(pollForTipHeight, POLLING_INTERVAL);
+                })
+                .catch(error => {
+                    console.error('Error fetching tip:', error);
+                    // Retry sooner on error
+                    setTimeout(pollForTipHeight, 1000);
+                });
+        }
+
+        // Helper function to check if a position is occupied
+        function isPositionOccupied(height, verticalPosition) {
+            if (!heightToBlocks[height]) return false;
+
+            return heightToBlocks[height].some(hash => {
+                const block = blocks[hash];
+                return block && block.verticalPosition === verticalPosition;
+            });
+        }
+
+        // Clear the visualization
+        function clearVisualization() {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            blocks = {};
+            heightToBlocks = {};
+            longestChainBlocks = [];
+            visibleBlocks = [];
+        }
+
+        // Update the visualization with new data
+        function updateVisualization(blocksData) {
+            // Remember selected block if any
+            const selectedBlockHash = selectedBlock;
+
+            // Clear existing visualization
+            clearVisualization();
+
+            // Find the longest chain
+            findLongestChain(blocksData);
+
+            // Add blocks to visualization
+            blocksData.forEach(block => addBlock(block));
+
+            // Update arrows after all blocks are added
+            blocksData.forEach(block => {
+                if (block.parent && block.parent !== "null" && blocks[block.parent]) {
+                    createArrow(block.parent, block.hash);
+                }
+            });
+
+            // Restore selected block if it's still visible
+            if (selectedBlockHash && blocks[selectedBlockHash]) {
+                showBlockDetails(selectedBlockHash);
+            } else if (selectedBlockHash) {
+                // If previously selected block is no longer visible
+                blockInfoElement.style.display = 'none';
+                selectedBlock = null;
+            }
+
+            // Remember visible blocks
+            visibleBlocks = blocksData.map(block => block.hash);
+        }
+
+        // Find the longest chain by traversing backwards from tip
+        function findLongestChain(allBlocks) {
+            longestChainBlocks = [];
+
+            // Find the highest height block
+            let maxHeight = 0;
+            let tipHash = null;
+
+            allBlocks.forEach(block => {
+                const height = typeof block.height === 'number' ? block.height : parseInt(block.height, 10) || 0;
+                if (height > maxHeight) {
+                    maxHeight = height;
+                    tipHash = block.hash;
+                    currentTip = block.hash;
+                }
+            });
+
+            // Create a map for faster lookup
+            const blockMap = {};
+            allBlocks.forEach(block => {
+                blockMap[block.hash] = block;
+            });
+
+            // Traverse backwards from tip
+            let currentHash = tipHash;
+            while (currentHash && currentHash !== "null") {
+                longestChainBlocks.unshift(currentHash);
+                const block = blockMap[currentHash];
+                if (!block) break;
+                currentHash = block.parent;
+            }
+        }
+
+        // Add a block to the visualization
+        function addBlock(block) {
+            const blockHash = block.hash;
+
+            // Parse height - ensure it's a number
+            const height = typeof block.height === 'number' ? block.height : parseInt(block.height, 10) || 0;
+
+            // Create height bucket if it doesn't exist
+            if (!heightToBlocks[height]) {
+                heightToBlocks[height] = [];
+            }
+
+            // Determine if block is in longest chain
+            const isLongestChain = longestChainBlocks.includes(blockHash);
+
+            // Calculate position
+            let verticalPosition;
+
+            if (isLongestChain) {
+                // Place longest chain blocks in the middle
+                verticalPosition = 3; // Center row
+            } else {
+                // Place forks diagonally
+                const parentHash = block.parent;
+                const parentIsLongestChain = parentHash && longestChainBlocks.includes(parentHash);
+
+                if (parentIsLongestChain) {
+                    // First level fork - place above or below center
+                    // Find first available position above or below center
+                    for (let offset = 1; offset <= 3; offset++) {
+                        // Try position above center
+                        if (!isPositionOccupied(height, 3 - offset)) {
+                            verticalPosition = 3 - offset;
+                            break;
+                        }
+                        // Try position below center
+                        if (!isPositionOccupied(height, 3 + offset)) {
+                            verticalPosition = 3 + offset;
+                            break;
+                        }
+                    }
+                    // If all positions are occupied, use a new row
+                    if (verticalPosition === undefined) {
+                        // Count blocks to determine new row
+                        const occupiedPositions = [];
+                        heightToBlocks[height]?.forEach(h => {
+                            if (blocks[h]) occupiedPositions.push(blocks[h].verticalPosition);
+                        });
+
+                        for (let pos = 0; pos <= 6; pos++) {
+                            if (!occupiedPositions.includes(pos)) {
+                                verticalPosition = pos;
+                                break;
+                            }
+                        }
+
+                        // Last resort
+                        if (verticalPosition === undefined) {
+                            verticalPosition = 0;
+                        }
+                    }
+                } else {
+                    // Second level fork or deeper - find parent's position and extend
+                    const parent = blocks[parentHash];
+                    if (parent) {
+                        // Continue in same direction as parent fork
+                        const parentY = parent.verticalPosition;
+
+                        // Try to keep same vertical position as parent if possible
+                        if (!isPositionOccupied(height, parentY)) {
+                            verticalPosition = parentY;
                         } else {
-					statusElement.classList.remove('mining');
-					miningStatus.classList.remove('active');
-					showNotification(`Node ${nodeId} stopped mining`);
-				}
-			}
+                            // Otherwise try positions nearby
+                            for (let offset = 1; offset <= 3; offset++) {
+                                // Try position above
+                                if (parentY - offset >= 0 && !isPositionOccupied(height, parentY - offset)) {
+                                    verticalPosition = parentY - offset;
+                                    break;
+                                }
+                                // Try position below
+                                if (parentY + offset <= 6 && !isPositionOccupied(height, parentY + offset)) {
+                                    verticalPosition = parentY + offset;
+                                    break;
+                                }
+                            }
+                        }
 
-			miningState.textContent = isMining ? 'Mining' : 'Idle';
-			miningDifficulty.textContent = difficulty;
-		}
+                        // If still no position, find any available position
+                        if (verticalPosition === undefined) {
+                            for (let pos = 0; pos <= 6; pos++) {
+                                if (!isPositionOccupied(height, pos)) {
+                                    verticalPosition = pos;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
-		function updateSharedMempool(transactions) {
-			if (!Array.isArray(transactions)) {
-				console.warn('[DEBUG] updateSharedMempool: transactions is not an array', transactions);
-				return;
-			}
-			console.log('[DEBUG] updateSharedMempool received:', transactions);
-			// Update the mempool count in the panel title
-			const mempoolTitle = document.querySelector('.shared-mempool-panel .section-title');
-			if (mempoolTitle) {
-				mempoolTitle.textContent = `Mempool (pending transactions: ${transactions.filter(tx => !tx.status || tx.status.toLowerCase() !== 'rejected').length})`;
-			}
-			const container = document.querySelector('.shared-mempool-section');
-			container.innerHTML = '';
-			if (transactions.length === 0) {
-				container.innerHTML = '<div style="color:#888;">No pending transactions.</div>';
-				return;
-			}
-			const seen = new Set();
-			const filtered = transactions.filter(tx => {
-				const key = (tx.from_addr || tx.from || 'Unknown') + '-' + (tx.nonce || 'Unknown');
-				if (seen.has(key)) return false;
-				seen.add(key);
-				return true;
-			});
-			filtered.forEach(tx => {
-				const from = tx.from_addr || tx.from || 'Unknown';
-				const to = tx.to_addr || tx.to || 'Unknown';
-				const hash = tx.hash || 'Unknown';
-				const value = tx.value !== undefined ? tx.value : '?';
-				const nonce = tx.nonce !== undefined ? tx.nonce : '?';
-				const txElement = document.createElement('div');
-				txElement.setAttribute('data-hash', hash);
-				
-				// Randomly mark 5% of transactions as rejected for visualization
-				const isRejected = Math.random() < 0.05;
-				
-				if (isRejected) {
-					txElement.className = 'transaction rejected';
-					const rejectionReasons = [
-						"Invalid nonce",
-						"Invalid signature",
-						"Invalid recipient"
-					];
-					const randomReason = rejectionReasons[Math.floor(Math.random() * rejectionReasons.length)];
-					
-					txElement.innerHTML = `
-						<div style="display:flex;align-items:center;justify-content:space-between;">
-							<div>From: ${from.substring(0, 8)} → To: ${to.substring(0, 8)}</div>
-							<span class="rejection-badge">Rejected</span>
-						</div>
-						<div>Value: ${value} | Nonce: ${nonce}</div>
-						<div class="transaction-details">Hash: ${hash.substring(0, 16)}...</div>
-						<div style="color:#F44336;font-size:0.9em;margin-top:4px;">
-							${randomReason}
-						</div>
-					`;
-					container.appendChild(txElement);
-					
-					// Show rejection notification
-					showNotification(`Transaction rejected: ${randomReason}`, 'error');
-					
-					// Remove after animation
-					setTimeout(() => {
-						txElement.style.opacity = '0';
-						txElement.style.transform = 'translateX(100%)';
-						txElement.style.transition = 'all 0.5s ease-out';
-						setTimeout(() => txElement.remove(), 500);
-					}, 3000);
-				} else {
-					txElement.className = 'transaction new';
-					txElement.innerHTML = `
-						<div>From: ${from.substring(0, 8)} → To: ${to.substring(0, 8)}</div>
-						<div>Value: ${value} | Nonce: ${nonce}</div>
-						<div class="transaction-details">Hash: ${hash.substring(0, 16)}...</div>
-					`;
-					container.appendChild(txElement);
-				}
-			});
-		}
+                    // Last resort if we still don't have a position
+                    if (verticalPosition === undefined) {
+                        // Find first available position
+                        for (let pos = 0; pos <= 6; pos++) {
+                            if (!isPositionOccupied(height, pos)) {
+                                verticalPosition = pos;
+                                break;
+                            }
+                        }
+                        // Absolute last resort
+                        if (verticalPosition === undefined) {
+                            verticalPosition = 6;
+                        }
+                    }
+                }
+            }
 
-		function updateConsensusChain(blocks) {
-			const section = document.getElementById('consensus-blockchain-section');
-			section.innerHTML = '';
-			// Sort blocks by height
-			blocks.sort((a, b) => a.height - b.height);
-			// Ensure genesis block is present at the beginning
-			if (blocks.length === 0 || blocks[0].height !== 0) {
-				// Insert a placeholder genesis block if missing
-				blocks.unshift({
-					height: 0,
-					hash: 'GENESIS',
-					parent: 'NONE',
-					miner: 'GENESIS',
-					transactions: [],
-					timestamp: 0
-				});
-			}
-			blocks.forEach(block => {
-				const blockElement = document.createElement('div');
-				blockElement.className = `block block-large ${block.height === 0 ? 'genesis' : ''}`;
-				blockElement.textContent = `#${block.height}`;
-				const details = document.createElement('div');
-				details.className = 'block-details';
-				details.innerHTML = `
-					<div style="font-weight:bold;font-size:1.08em;margin-bottom:4px;">Block #${block.height}</div>
-					<div><strong>Hash:</strong> ${block.hash.substring(0, 16)}...</div>
-					<div><strong>Parent:</strong> ${block.parent.substring(0, 16)}...</div>
-					<div><strong>Miner:</strong> ${block.miner}</div>
-					<div><strong>Transactions:</strong> ${block.transactions ? block.transactions.length : 0}</div>
-					<div><strong>Timestamp:</strong> ${block.timestamp ? new Date(block.timestamp).toLocaleString() : 'N/A'}</div>
-				`;
-				// Show up to 10 transactions per block, styled
-				if (block.transactions && block.transactions.length > 0) {
-					const txList = document.createElement('div');
-					txList.className = 'tx-list';
-					block.transactions.slice(0, 10).forEach(tx => {
-						const from = tx.from_addr || tx.from || 'Unknown';
-						const to = tx.to_addr || tx.to || 'Unknown';
-						const value = tx.value !== undefined ? tx.value : '?';
-						const hash = tx.hash || 'Unknown';
-						const txDiv = document.createElement('div');
-						txDiv.className = 'tx-item';
-						txDiv.innerHTML = `<span style='color:#388e3c;'>From:</span> ${from.substring(0,8)} <span style='color:#888;'>→</span> <span style='color:#1976d2;'>To:</span> ${to.substring(0,8)}<br><span style='color:#888;'>Value:</span> ${value} <span style='color:#888;'>|</span> <span style='color:#888;'>Hash:</span> ${hash.substring(0,8)}...`;
-						txList.appendChild(txDiv);
-					});
-					if (block.transactions.length > 10) {
-						const moreDiv = document.createElement('div');
-						moreDiv.className = 'tx-more';
-						moreDiv.textContent = `...and ${block.transactions.length - 10} more transactions.`;
-						txList.appendChild(moreDiv);
-					}
-					details.appendChild(txList);
-				} else {
-					const noTx = document.createElement('div');
-					noTx.className = 'transaction-details';
-					noTx.style.color = '#888';
-					noTx.textContent = 'No transactions in this block.';
-					details.appendChild(noTx);
-				}
-				blockElement.appendChild(details);
-				section.appendChild(blockElement);
-			});
-			document.getElementById('consensus-block-count').textContent = `Blocks: ${blocks.length}`;
-		}
+            // Ensure verticalPosition has a valid value
+            verticalPosition = Math.max(0, Math.min(6, verticalPosition || 0));
 
-		function updateTxStatus(txs) {
-			const tbody = document.querySelector('.tx-status-table tbody');
-			tbody.innerHTML = '';
-			txs.forEach(tx => {
-				const tr = document.createElement('tr');
-				tr.innerHTML = `
-					<td>${tx.hash.substring(0, 8)}...</td>
-					<td>${tx.from.substring(0, 8)}...</td>
-					<td>${tx.to.substring(0, 8)}...</td>
-					<td>${tx.value}</td>
-					<td>${tx.status}</td>
-					<td>${tx.node}</td>
-				`;
-				tbody.appendChild(tr);
-			});
-		}
+            // Add to height bucket
+            heightToBlocks[height].push(blockHash);
 
-		function pollForUpdates() {
-			// Update each node's view
-			NODES.forEach(nodeId => {
-				fetch(`/api/node/${nodeId}/blocks`)
-					.then(response => response.json())
-					.then(nodeData => {
-						updateNodeVisualization(nodeId, nodeData.blocks);
-					});
-			});
-			
-			NODES.forEach(nodeId => {
-				fetch(`/api/node/${nodeId}/accounts`)
-					.then(response => response.json())
-					.then(accounts => {
-						updateAccounts(accounts);
-					});
-			});
+            // Create block element
+            const blockElement = document.createElement('div');
+            blockElement.className = 'block';
+            if (height === 0) {
+                blockElement.classList.add('genesis');
+            }
+            if (isLongestChain) {
+                blockElement.classList.add('longest-chain');
+            }
 
-			// Fetch and update shared mempool only
-			fetch('/api/mempool')
-				.then(response => response.json())
-				.then(sharedMempoolData => {
-					updateSharedMempool(sharedMempoolData);
-				});
+            // Extract the last 4 characters of the hash
+            const hashLength = blockHash.length;
+            const hashSuffix = blockHash.replace(/[^a-zA-Z0-9]/g, '').substring(hashLength - 6);
+            blockElement.textContent = hashSuffix;
 
-			// Fetch and update transaction status
-			fetch('/api/tx_status')
-				.then(response => response.json())
-				.then(txData => {
-					updateTxStatus(txData);
-				});
-				
-			setTimeout(pollForUpdates, POLLING_INTERVAL);
-		}
+            // Position the block - adjust x position based on the start height
+            const relativeHeight = height - startHeight;
+            const xPos = relativeHeight * HORIZONTAL_SPACING + 20;
+            const yPos = verticalPosition * VERTICAL_SPACING + 20;
 
-		function initializeCommunicationLines() {
-			const node1 = document.getElementById('node1');
-			const node2 = document.getElementById('node2');
-			const node3 = document.getElementById('node3');
+            blockElement.style.left = xPos + 'px';
+            blockElement.style.top = yPos + 'px';
+            blockElement.setAttribute('data-hash', blockHash);
 
-			createCommunicationLine(node1, node2);
-			createCommunicationLine(node2, node3);
-			createCommunicationLine(node1, node3);
-		}
+            // Store block data
+            blocks[blockHash] = {
+                element: blockElement,
+                data: block,
+                x: xPos,
+                y: yPos,
+                height: height,
+                verticalPosition: verticalPosition,
+                arrows: [],
+                isLongestChain: isLongestChain
+            };
 
-		function createCommunicationLine(node1, node2) {
-			const line = document.createElement('div');
-			line.className = 'communication-line';
-			document.body.appendChild(line);
-			updateCommunicationLine(line, node1, node2);
-		}
+            // Add click handler for block details
+            blockElement.addEventListener('click', () => showBlockDetails(blockHash));
 
-		function updateCommunicationLine(line, node1, node2) {
-			const rect1 = node1.getBoundingClientRect();
-			const rect2 = node2.getBoundingClientRect();
+            // Add to DOM
+            container.appendChild(blockElement);
+        }
 
-			const x1 = rect1.left + rect1.width / 2;
-			const y1 = rect1.top + rect1.height / 2;
-			const x2 = rect2.left + rect2.width / 2;
-			const y2 = rect2.top + rect2.height / 2;
+        // Create an arrow connecting parent and child blocks
+        function createArrow(parentHash, childHash) {
+            const parent = blocks[parentHash];
+            const child = blocks[childHash];
 
-			const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-			const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            if (!parent || !child) return;
 
-			line.style.width = `${length}px`;
-			line.style.left = `${x1}px`;
-			line.style.top = `${y1}px`;
-			line.style.transform = `rotate(${angle}deg)`;
-			line.style.transformOrigin = '0 0';
-		}
+            const arrow = document.createElement('div');
+            arrow.className = 'arrow';
 
+            // Calculate start and end positions
+            const startX = child.x; // Left edge of child
+            const startY = child.y + BLOCK_SIZE / 2;
+            const endX = parent.x + BLOCK_SIZE; // Right edge of parent
+            const endY = parent.y + BLOCK_SIZE / 2;
+
+            // Calculate length and angle
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+            // Set arrow position and rotation
+            arrow.style.width = length + 'px';
+            arrow.style.left = startX + 'px';
+            arrow.style.top = startY + 'px';
+            arrow.style.transformOrigin = '0 50%';
+            arrow.style.transform = `rotate(${angle}deg)`;
+
+            // Use different color for longest chain
+            if (parent.isLongestChain && child.isLongestChain) {
+                arrow.style.backgroundColor = '#FF9800';
+                arrow.style.height = '3px';
+                arrow.style.zIndex = '2';
+            }
+
+            container.appendChild(arrow);
+            child.arrows.push(arrow);
+        }
+
+        // Display block details when clicked
+        function showBlockDetails(hash) {
+            const block = blocks[hash].data;
+
+            if (selectedBlock) {
+                blocks[selectedBlock].element.style.boxShadow = 'none';
+            }
+
+            selectedBlock = hash;
+            blocks[hash].element.style.boxShadow = '0 0 10px 2px #ffc107';
+
+            // Create transaction table HTML
+            let transactionsHtml = '';
+            if (block.transactions && block.transactions.length > 0) {
+                transactionsHtml = `
+                    <h4>Transactions (${block.transactions.length})</h4>
+                    <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+                        <thead>
+                            <tr style="background:#f0f0f0;">
+                                <th style="text-align:left; padding:4px;">From</th>
+                                <th style="text-align:left; padding:4px;">To</th>
+                                <th style="text-align:right; padding:4px;">Value</th>
+                                <th style="text-align:right; padding:4px;">Nonce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${block.transactions.map(tx => `
+                                <tr>
+                                    <td style="font-family:monospace; padding:4px;">${tx.from}</td>
+                                    <td style="font-family:monospace; padding:4px;">${tx.to}</td>
+                                    <td style="text-align:right; padding:4px;">${tx.value}</td>
+                                    <td style="text-align:right; padding:4px;">${tx.nonce}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                transactionsHtml = '<p>No transactions in this block</p>';
+            }
+
+            blockInfoElement.innerHTML = `
+                <h3>Block Details</h3>
+                <p><strong>Hash:</strong> ${block.hash}</p>
+                <p><strong>Height:</strong> ${block.height}</p>
+                <p><strong>Parent:</strong> ${block.parent || 'Genesis Block'}</p>
+                <p><strong>Timestamp:</strong> ${new Date(parseInt(block.timestamp)).toLocaleString()}</p>
+                <p><strong>Miner:</strong> ${block.miner}</p>
+                ${transactionsHtml}
+            `;
+            blockInfoElement.style.display = 'block';
+        }
+
+        // Initialize
         function init() {
-			initializeCommunicationLines();
-			pollForUpdates();
-		}
+            // Calculate blocks per screen
+            blocksPerScreen = calculateBlocksPerScreen();
 
+            // Start polling for tip height
+            pollForTipHeight();
+        }
+
+        // Run initialization
         init();
+
+        // Fetch and update account balances
+        function fetchAccounts() {
+            fetch('/api/accounts')
+                .then(response => response.json())
+                .then(accounts => {
+                    const tbody = document.querySelector('#accounts-table tbody');
+                    tbody.innerHTML = '';
+                    accounts.forEach(acc => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td style='font-family:monospace; padding:4px;'>${acc.address}</td><td style='text-align:right; padding:4px;'>${acc.nonce}</td><td style='text-align:right; padding:4px;'>${acc.balance}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    const tbody = document.querySelector('#accounts-table tbody');
+                    tbody.innerHTML = `<tr><td colspan='3' style='color:red;'>Error loading accounts</td></tr>`;
+                });
+        }
+        // Poll accounts every 2 seconds
+        setInterval(fetchAccounts, 2000);
+        fetchAccounts();
+
+        // Log panel logic
+        function fetchLogs() {
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const logPanel = document.getElementById('log-panel');
+                    logPanel.innerHTML = logs.map(line => `<div>${line}</div>`).join('');
+                    logPanel.scrollTop = logPanel.scrollHeight;
+                })
+                .catch(err => {
+                    const logPanel = document.getElementById('log-panel');
+                    logPanel.innerHTML = '<div style="color:red;">Error loading logs</div>';
+                });
+        }
+        setInterval(fetchLogs, 2000);
+        fetchLogs();
+
+        // Mempool panel logic
+        function pollMempool() {
+            fetch('/api/mempool')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(transactions => {
+                    // Update pending transactions set
+                    pendingTransactions = new Set(transactions.map(tx => tx.hash));
+                    
+                    // Update mempool panel
+                    if (transactions.length > 0) {
+                        const html = transactions.map(tx => `
+                            <div class="mempool-tx" data-hash="${tx.hash}">
+                                <span class="tx-from">${tx.from.substring(0, 8)}...</span> →
+                                <span class="tx-to">${tx.to.substring(0, 8)}...</span>
+                                <span class="tx-value">${tx.value}</span>
+                            </div>
+                        `).join('');
+                        mempoolPanel.innerHTML = `<h4>Pending Transactions (${transactions.length})</h4>${html}`;
+                    } else {
+                        mempoolPanel.innerHTML = '<h4>No pending transactions</h4>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching mempool:', error);
+                })
+                .finally(() => {
+                    setTimeout(pollMempool, POLLING_INTERVAL);
+                });
+        }
+
+        // Start polling for mempool
+        pollMempool();
+
+        // Update transaction status in block details
+        function updateTransactionStatus(transactions) {
+            transactions.forEach(tx => {
+                const txElement = document.querySelector(`.mempool-tx[data-hash="${tx.hash}"]`);
+                if (txElement) {
+                    txElement.classList.add('confirmed');
+                }
+            });
+        }
 	</script>
 </body>
 
